@@ -217,9 +217,9 @@ ul { list-style: none; }
   align-items: center;
   gap: 10px;
   padding: 16px 52px;
-  border: 1.5px solid var(--color-primary);
+  border: 1.5px solid var(--color-accent);
   color: var(--color-white);
-  background: var(--color-primary);
+  background: var(--color-accent);
   font-family: 'Noto Sans JP', sans-serif;
   font-size: 0.8125rem;
   letter-spacing: 0.12em;
@@ -227,10 +227,10 @@ ul { list-style: none; }
   transition: background var(--transition), color var(--transition), box-shadow var(--transition), filter var(--transition);
 }
 .btn-outline-green:hover {
-  background: var(--color-primary-mid);
-  border-color: var(--color-primary-mid);
+  background: var(--color-accent-light);
+  border-color: var(--color-accent-light);
   color: var(--color-white);
-  box-shadow: 0 4px 20px rgba(26,60,43,0.25);
+  box-shadow: 0 4px 20px rgba(184,150,12,0.35);
   filter: brightness(1.08);
 }
 .btn-outline-green::after {
@@ -274,25 +274,15 @@ ul { list-style: none; }
 
 .nav-logo {
   display: flex;
-  flex-direction: column;
-  gap: 1px;
+  align-items: center;
   text-decoration: none;
   flex-shrink: 0;
 }
-.logo-en {
-  font-family: 'Lato', sans-serif;
-  font-weight: 300;
-  font-size: 0.875rem;
-  letter-spacing: 0.25em;
-  color: var(--color-white);
-  line-height: 1;
-}
-.logo-ja {
-  font-family: 'Noto Sans JP', sans-serif;
-  font-size: 0.5625rem;
-  letter-spacing: 0.15em;
-  color: rgba(255,255,255,0.65);
-  line-height: 1;
+.nav-logo-img {
+  height: 48px;
+  width: auto;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
 }
 
 .nav-links {
@@ -415,8 +405,8 @@ ul { list-style: none; }
 .hero-badge {
   display: inline-block;
   padding: 6px 20px;
-  border: 1px solid var(--color-accent);
-  color: var(--color-accent);
+  border: 1px solid var(--color-white);
+  color: var(--color-white);
   font-family: 'Noto Sans JP', sans-serif;
   font-size: 0.75rem;
   letter-spacing: 0.1em;
@@ -1396,6 +1386,13 @@ ul { list-style: none; }
   align-items: center;
   gap: 4px;
   margin-bottom: 40px;
+}
+.footer-logo-img {
+  height: 72px;
+  width: auto;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+  opacity: 0.7;
 }
 
 .footer-nav {
