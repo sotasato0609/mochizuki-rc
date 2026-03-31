@@ -47,7 +47,7 @@ functions.http('sendMail', async (req, res) => {
 
   // 送信先
   const ADMIN_EMAIL = 'mochizuki@resol-golf.jp';
-  const FROM_EMAIL  = 'noreply@resol-golf.jp'; // TODO: SendGridで認証済みの送信元に差し替え
+  const FROM_EMAIL  = 'mochizuki@resol-golf.jp';
 
   // ---- フォーム内容をテキストに整形 ----
   const formBody = [
