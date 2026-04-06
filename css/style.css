@@ -41,6 +41,7 @@
 html {
   scroll-behavior: smooth;
   font-size: 16px;
+  overflow-x: hidden;
 }
 
 body {
@@ -728,10 +729,13 @@ ul { list-style: none; }
   grid-template-columns: 1fr 1fr 1fr;
   grid-template-rows: 420px;
   gap: 16px;
-  /* コンテナからはみ出して画面幅いっぱいに */
-  width: 100vw;
+  /* コンテナからはみ出して画面幅いっぱいに（スクロールバー考慮） */
+  width: 100%;
+  max-width: 100vw;
   margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
   padding: 0 40px;
+  overflow: hidden;
 }
 .gallery-item {
   overflow: hidden;
@@ -1533,17 +1537,52 @@ ul { list-style: none; }
     min-height: 52px;
   }
 
+  /* ---- Hero (tablet) ---- */
+  .hero-period {
+    white-space: normal;
+    word-break: keep-all;
+  }
+
+  /* ---- Notice bar (tablet) ---- */
+  .notice-inner {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+  .notice-btn {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   /* ---- Course ---- */
   .course-gallery {
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 320px;
+    margin-left: 0;
+    margin-right: 0;
+    width: 100%;
+    padding: 0;
   }
 
   /* ---- Numbers ---- */
   .numbers-grid { grid-template-columns: repeat(2, 1fr); }
 
+  /* ---- Trial (tablet) ---- */
+  .trial-price-grid--3col {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .trial-price-card {
+    padding: 32px 16px;
+  }
+  .trial-price {
+    font-size: 2.25rem;
+  }
+
   /* ---- Access ---- */
   .access-wrap { grid-template-columns: 1fr; }
+  .access-map iframe { height: 340px; }
 }
 
 /* ---------- Mobile (≤767px) ---------- */
@@ -1618,7 +1657,10 @@ ul { list-style: none; }
   .course-gallery {
     grid-template-columns: 1fr;
     grid-template-rows: auto;
-    padding: 0 20px;
+    margin-left: 0;
+    margin-right: 0;
+    width: 100%;
+    padding: 0;
     gap: 12px;
   }
   .gallery-item { height: 220px; }
@@ -1653,8 +1695,10 @@ ul { list-style: none; }
     font-size: 0.8125rem;
     gap: 6px;
   }
-  .trial-price-grid { grid-template-columns: 1fr; gap: 12px; }
+  .trial-price-grid,
+  .trial-price-grid--3col { grid-template-columns: 1fr; gap: 12px; }
   .trial-price-card { padding: 32px 20px; }
+  .trial-price { font-size: 2.5rem; }
 
   /* ---- Access ---- */
   .access-map iframe { height: 260px; }
