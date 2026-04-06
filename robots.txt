@@ -1,0 +1,6 @@
+# 望月リソルゴルフクラブ LP - robots.txt
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://storage.googleapis.com/mochizuki-gc-lp/sitemap.xml
