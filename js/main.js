@@ -157,6 +157,31 @@
     }
   }
 
+  /* ---- BudouX: 日本語テキストの自然な単語区切り改行 ---- */
+  if (typeof budouXJa !== 'undefined' && budouXJa.Parser) {
+    var parser = new budouXJa.Parser();
+    var budouxSelectors = [
+      '.section-ja',
+      '.course-catch',
+      '.course-body',
+      '.benefit-title',
+      '.benefit-text',
+      '.hero-badge',
+      '.notice-text',
+      '.form-lead',
+      '.trial-includes p',
+      '.trial-notes li',
+      '.access-route p',
+      '.membership-note',
+      '.membership-badge',
+      '.footer-info p'
+    ];
+    var budouxTargets = document.querySelectorAll(budouxSelectors.join(','));
+    budouxTargets.forEach(function (el) {
+      parser.applyElement(el);
+    });
+  }
+
   /* ---- SP fixed CTA: hide near footer ---- */
   var spCta = document.getElementById('sp-cta');
   if (spCta) {

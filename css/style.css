@@ -51,6 +51,8 @@ body {
   color: var(--color-text);
   background: var(--color-base);
   overflow-x: hidden;
+  word-break: auto-phrase;       /* CSS Text L4: BudouX fallback */
+  overflow-wrap: break-word;
 }
 
 img {
