@@ -1291,6 +1291,8 @@ ul { list-style: none; }
   color: rgba(255,255,255,0.8) !important;
 }
 .radio-label input[type="radio"] {
+  -webkit-appearance: auto;
+  appearance: auto;
   width: 16px;
   height: 16px;
   accent-color: var(--color-accent);
@@ -1366,6 +1368,10 @@ ul { list-style: none; }
   color: rgba(255,255,255,0.65);
   line-height: 2;
   letter-spacing: 0.04em;
+  margin-bottom: 1em;
+}
+.thanks-message p:last-child {
+  margin-bottom: 0;
 }
 
 /* =====================================

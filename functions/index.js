@@ -48,7 +48,7 @@ functions.http('sendMail', async (req, res) => {
   // 送信先
 const ADMIN_EMAIL = 'resol.r.ogawa@icloud.com';
 const FROM_EMAIL  = 'noreply@mochizuki-resol-golf.com';
-const BCC_EMAIL   = 'sota.sato0609@gmail.com';
+const BCC_EMAIL   = ['sota.sato0609@gmail.com', 'daizo.iwasaki@gendai-a.co.jp'];
 
   // ---- フォーム内容をテキストに整形 ----
   const formBody = [
@@ -87,7 +87,17 @@ const BCC_EMAIL   = 'sota.sato0609@gmail.com';
     to:      d.email,
     from:    FROM_EMAIL,
     subject: '【視察プレー・資料請求のお申込み】お問い合わせありがとうございます。（望月リソルゴルフクラブ）',
-    text: `${d.name_kanji} 様\n\nこのたびは、望月リソルゴルフクラブへ資料請求または視察プレーのお申し込みを頂き誠にありがとうございます。\nお送り頂きました内容を確認の上、3営業日以内に折り返しご連絡させて頂きます。\n\nなお、お急ぎの場合は電話でもご相談を受け付けております。\n0267-53-6006までご遠慮なくご相談ください。\n\n望月リソルゴルフクラブ小川`,
+    text: `${d.name_kanji} 様\n\n` +
+          `このたびは、望月リソルゴルフクラブへ資料請求または視察プレーのお申し込みを頂き誠にありがとうございます。\n` +
+          `お送り頂きました内容を確認の上、3営業日以内に折り返しご連絡させて頂きます。\n\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          `お申込み内容\n` +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+          formBody + '\n' +
+          `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+          `なお、お急ぎの場合は電話でもご相談を受け付けております。\n` +
+          `0267-53-6006までご遠慮なくご相談ください。\n\n` +
+          `望月リソルゴルフクラブ小川`,
   };
 
   try {
