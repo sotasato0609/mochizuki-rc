@@ -46,9 +46,13 @@ functions.http('sendMail', async (req, res) => {
   }
 
   // 送信先
-const ADMIN_EMAIL = 'resol.r.ogawa@icloud.com';
+const ADMIN_EMAIL = 'mochizuki@resol-golf.jp';
 const FROM_EMAIL  = 'noreply@mochizuki-resol-golf.com';
-const BCC_EMAIL   = ['sota.sato0609@gmail.com', 'daizo.iwasaki@gendai-a.co.jp'];
+const BCC_EMAIL   = [
+  'resol.r.ogawa@icloud.com',
+  'sota.sato0609@gmail.com',
+  'daizo.iwasaki@gendai-a.co.jp'
+];
 
   // ---- フォーム内容をテキストに整形 ----
   const formBody = [
