@@ -176,6 +176,13 @@
       if (!res.ok) throw new Error('server error: ' + res.status);
 
       // Success
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({
+        event: 'form_submit_success',
+        form_name: 'contact_form',
+        inquiry_type: document.getElementById('inquiry_type').value
+      });
+
       form.style.display   = 'none';
       thanks.style.display = 'block';
       thanks.scrollIntoView({ behavior: 'smooth', block: 'center' });

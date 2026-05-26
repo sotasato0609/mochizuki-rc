@@ -758,6 +758,63 @@ ul { list-style: none; }
 }
 
 /* =====================================
+   HERITAGE
+   ===================================== */
+.heritage-block {
+  text-align: center;
+  padding: 24px 16px 8px;
+  border-top: 1px solid rgba(255,255,255,0.12);
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+}
+.heritage-lead {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 500;
+  font-size: clamp(1rem, 1.6vw, 1.25rem);
+  color: var(--color-accent);
+  letter-spacing: 0.15em;
+  margin-bottom: 24px;
+}
+.heritage-years {
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  font-size: clamp(3rem, 8vw, 6rem);
+  color: var(--color-white);
+  letter-spacing: 0.02em;
+  line-height: 1;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(12px, 2vw, 24px);
+}
+.heritage-dash {
+  display: inline-block;
+  width: clamp(28px, 4vw, 56px);
+  height: 1px;
+  background: var(--color-accent);
+  vertical-align: middle;
+}
+.heritage-note {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 400;
+  font-size: clamp(0.95rem, 1.3vw, 1.125rem);
+  color: rgba(255,255,255,0.75);
+  letter-spacing: 0.18em;
+  margin-bottom: 32px;
+}
+.heritage-desc {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 0.875rem;
+  line-height: 2;
+  color: rgba(255,255,255,0.6);
+  letter-spacing: 0.05em;
+}
+@media (max-width: 640px) {
+  .heritage-years { gap: 10px; }
+  .heritage-desc br { display: none; }
+}
+
+/* =====================================
    NUMBERS
    ===================================== */
 .numbers-grid {
