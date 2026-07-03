@@ -351,14 +351,22 @@ ul { list-style: none; }
    ===================================== */
 .hero {
   position: relative;
-  height: 100svh;
-  min-height: 640px;
+  /* 固定高(height)ではなく min-height にすることで、画面いっぱいを
+     最低保証しつつ、中身が多い低い/横長の画面では自動で縦に伸びる。
+     → ヘッダーや下のお知らせバー・次セクションへの食い込みを防ぐ */
+  min-height: 100svh;
   display: flex;
+  flex-direction: column;
   align-items: center;
+  /* 通常は上下中央寄せ。中身が収まらない場合は先頭（ヘッダー下）揃えに
+     フォールバックし、ヘッダーへの食い込みを防ぐ（safe非対応ブラウザは
+     min-height による自動拡張で同様に食い込みを回避） */
   justify-content: center;
+  justify-content: safe center;
   text-align: center;
   overflow: hidden;
   padding-top: var(--nav-h);
+  padding-bottom: 40px;
 }
 
 .hero-bg {
@@ -762,44 +770,44 @@ ul { list-style: none; }
    ===================================== */
 .heritage-block {
   text-align: center;
-  padding: 24px 16px 8px;
+  padding: 40px 16px 24px;
   border-top: 1px solid rgba(255,255,255,0.12);
   border-bottom: 1px solid rgba(255,255,255,0.12);
-}
-.heritage-lead {
-  font-family: 'Noto Sans JP', sans-serif;
-  font-weight: 500;
-  font-size: clamp(1rem, 1.6vw, 1.25rem);
-  color: var(--color-accent);
-  letter-spacing: 0.15em;
-  margin-bottom: 24px;
 }
 .heritage-years {
   font-family: 'Lato', sans-serif;
   font-weight: 300;
-  font-size: clamp(3rem, 8vw, 6rem);
-  color: var(--color-white);
-  letter-spacing: 0.02em;
+  font-size: clamp(0.875rem, 1.2vw, 1rem);
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 0.18em;
   line-height: 1;
-  margin-bottom: 16px;
+  margin-bottom: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(12px, 2vw, 24px);
+  gap: clamp(8px, 1.2vw, 14px);
 }
 .heritage-dash {
   display: inline-block;
-  width: clamp(28px, 4vw, 56px);
+  width: 18px;
   height: 1px;
-  background: var(--color-accent);
+  background: rgba(255,255,255,0.4);
   vertical-align: middle;
 }
-.heritage-note {
+.heritage-years-note {
+  margin-left: clamp(10px, 1.5vw, 18px);
+  padding-left: clamp(10px, 1.5vw, 18px);
+  border-left: 1px solid rgba(255,255,255,0.2);
+  letter-spacing: 0.2em;
   font-family: 'Noto Sans JP', sans-serif;
-  font-weight: 400;
-  font-size: clamp(0.95rem, 1.3vw, 1.125rem);
-  color: rgba(255,255,255,0.75);
-  letter-spacing: 0.18em;
+}
+.heritage-title {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.75rem, 4.2vw, 3.25rem);
+  color: var(--color-white);
+  letter-spacing: 0.06em;
+  line-height: 1.25;
   margin-bottom: 32px;
 }
 .heritage-desc {
@@ -810,7 +818,8 @@ ul { list-style: none; }
   letter-spacing: 0.05em;
 }
 @media (max-width: 640px) {
-  .heritage-years { gap: 10px; }
+  .heritage-years { gap: 8px; flex-wrap: wrap; }
+  .heritage-years-note { margin-left: 0; padding-left: 0; border-left: none; flex-basis: 100%; margin-top: 8px; }
   .heritage-desc br { display: none; }
 }
 
@@ -1661,7 +1670,7 @@ ul { list-style: none; }
   .section-heading { margin-bottom: 48px; }
 
   /* ---- Hero ---- */
-  .hero { min-height: 560px; }
+  .hero { min-height: 100svh; }
   .hero-content { padding: 0 16px; }
   .hero-period {
     font-size: clamp(1.5rem, 8vw, 2.5rem);
@@ -1830,7 +1839,7 @@ ul { list-style: none; }
 @media (max-width: 480px) {
   :root { --section-pad: 56px; }
 
-  .hero { min-height: 500px; }
+  .hero { min-height: 100svh; }
   .hero-label { display: none; }
   .hero-badge { font-size: 0.625rem; padding: 4px 12px; margin-bottom: 20px; }
   .hero-period {
