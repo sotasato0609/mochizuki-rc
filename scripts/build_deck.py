@@ -1,115 +1,158 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""望月リソルゴルフクラブ 第2期会員募集｜運用分析レポート＆2026年8月配信提案"""
+"""
+望月リソルゴルフクラブ 第2期会員募集｜運用分析レポート＆2026年8月配信提案
+
+デザインフォーマット: 「営業本部共有_買取シミュレーター_2026-07.pptx」に準拠。
+参照元から抽出した design token をそのまま使用する（.claude/skills/pptx/SKILL.md 参照）。
+  - フォント: Meiryo 単一 ／ 角丸なし（すべて直角矩形）／ 影なし
+  - ヘッダ文法: 縦バー+キッカー(11.5pt) → タイトル(27pt) → 短バー(334A62) + 全幅ヘアライン(E2E6EB)
+  - フッタ: ページ番号のみ（罫線・社名なし）
+  - カード: F2F4F7 + 上辺 0.05in のアクセントバー
+  - 表: ヘッダ 405D7B/白 → 行は FFFFFF / EEF0F3 の交互、行高 0.58in
+
+正確性プロトコル（.claude/rules/general.md）: 両論併記・証拠クラス明示・内部整合性。
+"""
 
 from pptx import Presentation
-from pptx.util import Inches as In, Pt, Emu
+from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.chart.data import CategoryChartData
 from pptx.enum.chart import XL_CHART_TYPE, XL_LEGEND_POSITION, XL_LABEL_POSITION
-import copy
+import os
 
-OUT = "望月リソルGC_運用分析レポート＆2026年8月配信提案.pptx"
+OUT_DIR = "output"
+OUT = os.path.join(OUT_DIR, "望月リソルGC_運用分析レポート＆2026年8月配信提案.pptx")
 
-# ── デザイントークン ─────────────────────────────
-FONT = "Yu Gothic"
-FONT_EN = "Arial"
-GREEN = RGBColor(0x1F, 0x4E, 0x3D)
-GREEN_MID = RGBColor(0x3D, 0x6B, 0x58)
-GREEN_PALE = RGBColor(0xE7, 0xEE, 0xEA)
-GOLD = RGBColor(0xA8, 0x89, 0x5C)
-INK = RGBColor(0x2B, 0x2B, 0x2B)
-MUTED = RGBColor(0x74, 0x74, 0x74)
-LINE = RGBColor(0xD9, 0xD9, 0xD9)
-SOFT = RGBColor(0xF5, 0xF6, 0xF4)
-ALERT = RGBColor(0xA6, 0x3A, 0x3A)
-ALERT_PALE = RGBColor(0xF6, 0xEC, 0xEC)
-WHITE = RGBColor(0xFF, 0xFF, 0xFF)
+# ══ 参照資料から抽出したカラーパレット ═══════════════════════
+COLORS = {
+    "primary":     RGBColor(0x40, 0x5D, 0x7B),
+    "primary_dk":  RGBColor(0x33, 0x4A, 0x62),
+    "accent":      RGBColor(0xA9, 0x69, 0x33),
+    "gray":        RGBColor(0x6C, 0x75, 0x82),
+    "ink":         RGBColor(0x2A, 0x2E, 0x33),
+    "text":        RGBColor(0x45, 0x4B, 0x52),
+    "muted":       RGBColor(0x8A, 0x92, 0x9C),
+    "slate_lt":    RGBColor(0x8F, 0xA3, 0xB8),
+    "surface":     RGBColor(0xF2, 0xF4, 0xF7),
+    "surface_alt": RGBColor(0xEE, 0xF0, 0xF3),
+    "border":      RGBColor(0xE2, 0xE6, 0xEB),
+    "hairline":    RGBColor(0xD6, 0xDB, 0xE1),
+    "bg":          RGBColor(0xFF, 0xFF, 0xFF),
+}
 
+# ══ タイポグラフィ（参照資料の実測値）═══════════════════════
+FONT_JA = "Meiryo"
+SZ = {
+    "cover_title": 33, "cover_right": 22, "cover_sub": 15, "cover_kick": 13, "cover_meta": 11.5,
+    "title": 27, "card_head": 15.5, "lead": 13.5, "body": 13, "body_s": 12,
+    "kicker": 11.5, "cell": 11.5, "label": 10.5, "fine": 9.5, "fine_s": 8.5,
+    "num": 27, "num_s": 22,
+}
+
+# ══ グリッド（参照資料の実測値）════════════════════════════
 SW, SH = 13.333, 7.5
-ML, MR = 0.72, 0.72
-CW = SW - ML - MR
-BODY_TOP = 1.62
-BODY_BOT = 6.92
+MX = 0.62
+CW = 12.10
+TITLE_X, TITLE_W = 0.58, 12.00
+BODY_Y = 1.90
+PAGE_Y = 7.12
+G = 0.20                       # カード間ギャップ
 
 prs = Presentation()
-prs.slide_width, prs.slide_height = In(SW), In(SH)
+prs.slide_width, prs.slide_height = Inches(SW), Inches(SH)
 BLANK = prs.slide_layouts[6]
-_page = {"n": 0}
+_st = {"page": 0, "layouts": []}
+I = Inches
 
 
-# ── 基本ヘルパ ───────────────────────────────
-def tf_style(tf, size=12, color=INK, bold=False, align=PP_ALIGN.LEFT,
-             space_after=3, line=1.25, font=FONT):
-    tf.word_wrap = True
-    for p in tf.paragraphs:
-        p.alignment = align
-        p.space_after = Pt(space_after)
-        p.line_spacing = line
-        for r in p.runs:
-            r.font.size, r.font.bold, r.font.name = Pt(size), bold, font
-            r.font.color.rgb = color
-
-
-def text(slide, x, y, w, h, s, size=12, color=INK, bold=False,
-         align=PP_ALIGN.LEFT, line=1.25, space_after=3, anchor=MSO_ANCHOR.TOP, font=FONT):
-    tb = slide.shapes.add_textbox(In(x), In(y), In(w), In(h))
+# ══ ヘルパ ══════════════════════════════════════════
+def txt(slide, x, y, w, h, text, size, color=None, bold=False,
+        align=PP_ALIGN.LEFT, line=1.35, anchor=MSO_ANCHOR.TOP, space_after=3):
+    tb = slide.shapes.add_textbox(I(x), I(y), I(w), I(h))
     tf = tb.text_frame
     tf.margin_left = tf.margin_right = tf.margin_top = tf.margin_bottom = 0
+    tf.word_wrap = True
     tf.vertical_anchor = anchor
-    lines = s.split("\n")
-    tf.text = lines[0]
-    for ln in lines[1:]:
-        tf.add_paragraph().text = ln
-    tf_style(tf, size, color, bold, align, space_after, line, font)
+    for i, ln in enumerate(str(text).split("\n")):
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        p.text = ln
+        p.alignment = align
+        p.line_spacing = line
+        p.space_after = Pt(space_after)
+        # 参考資料に合わせ、フォント指定は run 単位で行う
+        for fnt in [p.font] + [r.font for r in p.runs]:
+            fnt.name = FONT_JA
+            fnt.size = Pt(size)
+            fnt.bold = bold
+            fnt.color.rgb = color or COLORS["text"]
     return tb
 
 
-def rect(slide, x, y, w, h, fill=None, lc=None, lw=0.75, shape=MSO_SHAPE.RECTANGLE):
-    sp = slide.shapes.add_shape(shape, In(x), In(y), In(w), In(h))
-    if fill is None:
-        sp.fill.background()
-    else:
-        sp.fill.solid()
-        sp.fill.fore_color.rgb = fill
-    if lc is None:
-        sp.line.fill.background()
-    else:
-        sp.line.color.rgb = lc
-        sp.line.width = Pt(lw)
+def rect(slide, x, y, w, h, fill):
+    sp = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, I(x), I(y), I(w), I(h))
+    sp.fill.solid()
+    sp.fill.fore_color.rgb = fill
+    sp.line.fill.background()
     sp.shadow.inherit = False
     sp.text_frame.text = ""
     return sp
 
 
-def slide_new(title, label=None, lead=None):
+def card(slide, x, y, w, h, accent=None, fill=None):
+    """F2F4F7 の面 + 上辺 0.05in のアクセントバー（参照資料の作法）"""
+    rect(slide, x, y, w, h, fill or COLORS["surface"])
+    if accent:
+        rect(slide, x, y, w, 0.05, accent)
+
+
+def header(slide, kicker, title, tag):
+    """縦バー+キッカー → タイトル27pt → 短バー + 全幅ヘアライン"""
+    _st["page"] += 1
+    _st["layouts"].append(tag)
+    L = _st["layouts"]
+    if len(L) >= 3 and L[-1] == L[-2] == L[-3]:
+        raise AssertionError(f"同一レイアウト {tag} が3枚連続（p{_st['page']}）")
+    rect(slide, MX, 0.50, 0.09, 0.26, COLORS["primary"])
+    txt(slide, 0.80, 0.48, 11.5, 0.30, kicker, SZ["kicker"], COLORS["primary"], True)
+    txt(slide, TITLE_X, 0.80, TITLE_W, 0.62, title, SZ["title"], COLORS["ink"], True, line=1.15)
+    rect(slide, MX, 1.53, 1.75, 0.05, COLORS["primary_dk"])
+    rect(slide, MX, 1.55, CW, 0.01, COLORS["border"])
+    txt(slide, 12.40, PAGE_Y, 0.70, 0.30, f"{_st['page']:02d}", SZ["label"],
+        COLORS["muted"], align=PP_ALIGN.RIGHT)
+
+
+def slide_new(kicker, title, tag="C", lead=None):
     s = prs.slides.add_slide(BLANK)
-    _page["n"] += 1
-    rect(s, 0, 0, SW, 0.075, GREEN)
-    y = 0.46
-    if label:
-        text(s, ML, y, CW, 0.24, label, 10.5, GOLD, True)
-        y += 0.3
-    text(s, ML, y, CW, 0.52, title, 25, GREEN, True, line=1.1)
-    ty = y + (0.62 if len(title) < 34 else 0.98)
-    rect(s, ML, ty, 0.9, 0.035, GOLD)
+    header(s, kicker, title, tag)
     if lead:
-        text(s, ML, ty + 0.18, CW, 0.4, lead, 12.5, MUTED, line=1.35)
-    rect(s, ML, 7.06, CW, 0.012, LINE)
-    text(s, ML, 7.13, 8, 0.22, "望月リソルゴルフクラブ｜運用分析レポート＆2026年8月配信提案", 8.5, MUTED)
-    text(s, SW - MR - 1.2, 7.13, 1.2, 0.22, f"{_page['n']:02d}", 8.5, MUTED, align=PP_ALIGN.RIGHT, font=FONT_EN)
+        txt(s, MX, 1.68, CW, 0.3, lead, SZ["kicker"], COLORS["muted"])
     return s
 
 
-def table(slide, x, y, w, rows, col_w, head_fill=GREEN, head_color=WHITE,
-          fs=11, hfs=10.5, row_h=0.34, head_h=0.36, aligns=None, zebra=True,
-          hl_rows=None, hl_fill=GREEN_PALE, bold_rows=None):
-    """rows[0] = ヘッダ"""
-    hl_rows = hl_rows or []
-    bold_rows = bold_rows or []
-    nrow, ncol = len(rows), len(rows[0])
+def divider(no, title, sub):
+    s = prs.slides.add_slide(BLANK)
+    rect(s, 0, 0, SW, SH, COLORS["primary"])
+    rect(s, 0, 0, 0.06, SH, COLORS["accent"])
+    txt(s, 1.25, 2.95, 10, 0.34, no, SZ["cover_kick"], COLORS["accent"], True)
+    txt(s, 1.25, 3.42, 10.5, 0.7, title, SZ["cover_title"], COLORS["bg"], True, line=1.15)
+    rect(s, 1.25, 4.42, 2.30, 0.04, COLORS["accent"])
+    txt(s, 1.25, 4.72, 10.5, 0.5, sub, SZ["cover_sub"], COLORS["hairline"], line=1.4)
+    _st["page"] += 1
+    _st["layouts"].append("B")
+    txt(s, 12.40, PAGE_Y, 0.70, 0.30, f"{_st['page']:02d}", SZ["label"],
+        COLORS["slate_lt"], align=PP_ALIGN.RIGHT)
+    return s
+
+
+def table(slide, x, y, w, rows, col_w, row_h=0.44, head_h=0.46,
+          fs=None, aligns=None, hl=None):
+    """ヘッダ 405D7B/白 → 行 FFFFFF / EEF0F3 交互（参照資料の作法）"""
+    fs = fs or SZ["cell"]
+    hl = hl or []
+    ncol = len(rows[0])
     tot = sum(col_w)
     col_w = [c / tot * w for c in col_w]
     aligns = aligns or [PP_ALIGN.LEFT] + [PP_ALIGN.RIGHT] * (ncol - 1)
@@ -117,53 +160,68 @@ def table(slide, x, y, w, rows, col_w, head_fill=GREEN, head_color=WHITE,
     for ri, row in enumerate(rows):
         h = head_h if ri == 0 else row_h
         if ri == 0:
-            rect(slide, x, cy, w, h, head_fill)
-        elif ri in hl_rows:
-            rect(slide, x, cy, w, h, hl_fill)
-        elif zebra and ri % 2 == 0:
-            rect(slide, x, cy, w, h, SOFT)
+            bg = COLORS["primary"]
+        elif ri in hl:
+            bg = COLORS["surface"]
+        else:
+            bg = COLORS["bg"] if ri % 2 == 1 else COLORS["surface_alt"]
+        rect(slide, x, cy, w, h, bg)
         cx = x
         for ci, cell in enumerate(row):
-            pad = 0.09
-            bold = (ri == 0) or (ri in bold_rows) or str(cell).startswith("**")
-            val = str(cell).replace("**", "")
-            col = head_color if ri == 0 else INK
-            al = aligns[ci] if ci < len(aligns) else PP_ALIGN.LEFT
-            text(slide, cx + pad, cy, col_w[ci] - pad * 2, h, val,
-                 hfs if ri == 0 else fs, col, bold, al,
-                 anchor=MSO_ANCHOR.MIDDLE, line=1.0, space_after=0)
+            v = str(cell)
+            strong = v.startswith("**")
+            v = v.replace("**", "")
+            col = COLORS["bg"] if ri == 0 else (COLORS["primary"] if strong else COLORS["text"])
+            txt(slide, cx + 0.12, cy, col_w[ci] - 0.24, h, v, fs, col,
+                bold=(ri == 0) or strong,
+                align=aligns[ci] if ci < len(aligns) else PP_ALIGN.LEFT,
+                line=1.0, anchor=MSO_ANCHOR.MIDDLE, space_after=0)
             cx += col_w[ci]
-        if ri > 0:
-            rect(slide, x, cy + h, w, 0.008, LINE)
         cy += h
     return cy
 
 
-def stat(slide, x, y, w, h, value, label, note=None,
-         vcolor=GREEN, fill=SOFT, vsize=30, border=None):
-    rect(slide, x, y, w, h, fill, border, 1.0)
-    text(slide, x + 0.16, y + 0.16, w - 0.32, 0.26, label, 10.5, MUTED, True)
-    text(slide, x + 0.16, y + 0.46, w - 0.32, 0.62, value, vsize, vcolor, True, line=1.0, font=FONT_EN)
+def kpi(slide, x, y, w, h, value, label, note=None, accent=None, vcolor=None, vsize=None):
+    card(slide, x, y, w, h, accent or COLORS["primary"])
+    txt(slide, x + 0.22, y + 0.22, w - 0.44, 0.28, label, SZ["label"], COLORS["gray"], True)
+    txt(slide, x + 0.22, y + 0.54, w - 0.44, 0.62, value, vsize or SZ["num"],
+        vcolor or COLORS["primary"], True, line=1.1)
     if note:
-        text(slide, x + 0.16, y + h - 0.52, w - 0.32, 0.44, note, 9.5, MUTED, line=1.2)
+        txt(slide, x + 0.22, y + h - 0.6, w - 0.44, 0.5, note, SZ["fine"], COLORS["muted"], line=1.3)
 
 
-def callout(slide, x, y, w, h, body, kind="info"):
-    fill, bar, col = (GREEN_PALE, GREEN, INK) if kind == "info" else (ALERT_PALE, ALERT, INK)
-    rect(slide, x, y, w, h, fill)
-    rect(slide, x, y, 0.055, h, bar)
-    text(slide, x + 0.24, y + 0.13, w - 0.42, h - 0.26, body, 11.5, col, line=1.35, anchor=MSO_ANCHOR.MIDDLE)
+def panel(slide, x, y, w, h, label, title, body, accent=None, dark=False):
+    """課題/方針の対比パネル（参照資料スライド3の作法）"""
+    rect(slide, x, y, w, h, COLORS["primary"] if dark else COLORS["surface"])
+    if accent and not dark:
+        rect(slide, x, y, w, 0.05, accent)
+    lc = COLORS["slate_lt"] if dark else COLORS["gray"]
+    tc = COLORS["bg"] if dark else COLORS["ink"]
+    bc = COLORS["bg"] if dark else COLORS["text"]
+    txt(slide, x + 0.23, y + 0.22, w - 0.46, 0.3, label, SZ["label"], lc, True)
+    txt(slide, x + 0.23, y + 0.48, w - 0.46, 0.4, title, 16, tc, True)
+    txt(slide, x + 0.26, y + 1.02, w - 0.52, h - 1.24, body, SZ["body"], bc, line=1.5)
 
 
-def note(slide, y, s):
-    text(slide, ML, y, CW, 0.4, s, 9.5, MUTED, line=1.3)
+def bullets(items, mark="･"):
+    return "\n".join(f"{mark}  {t}" for t in items)
 
 
-def chart_style(gf, cat_size=10, val_size=9.5, legend=False, gridlines=False):
+def note_line(slide, y, s):
+    txt(slide, MX, y, CW, 0.4, s, SZ["fine"], COLORS["muted"], line=1.35)
+
+
+def chart(slide, kind, x, y, w, h, cats, series, colors, legend=False,
+          labels=True, lblsize=11, lblcolor=None, gap=60, overlap=None):
+    cd = CategoryChartData()
+    cd.categories = cats
+    for nm, vals in series:
+        cd.add_series(nm, vals)
+    gf = slide.shapes.add_chart(kind, I(x), I(y), I(w), I(h), cd)
     ch = gf.chart
-    ch.font.size = Pt(cat_size)
-    ch.font.name = FONT
-    ch.font.color.rgb = INK
+    ch.font.size = Pt(10)
+    ch.font.name = FONT_JA
+    ch.font.color.rgb = COLORS["text"]
     if legend:
         ch.has_legend = True
         ch.legend.position = XL_LEGEND_POSITION.BOTTOM
@@ -173,98 +231,116 @@ def chart_style(gf, cat_size=10, val_size=9.5, legend=False, gridlines=False):
         ch.has_legend = False
     try:
         va = ch.value_axis
-        va.has_major_gridlines = gridlines
-        if gridlines:
-            va.major_gridlines.format.line.color.rgb = LINE
-            va.major_gridlines.format.line.width = Pt(0.5)
-        va.tick_labels.font.size = Pt(val_size)
+        va.has_major_gridlines = True
+        va.major_gridlines.format.line.color.rgb = COLORS["border"]
+        va.major_gridlines.format.line.width = Pt(0.5)
+        va.tick_labels.font.size = Pt(9.5)
         va.format.line.fill.background()
     except Exception:
         pass
     try:
         ca = ch.category_axis
-        ca.tick_labels.font.size = Pt(cat_size)
-        ca.format.line.color.rgb = LINE
+        ca.tick_labels.font.size = Pt(9.5)
+        ca.format.line.color.rgb = COLORS["border"]
     except Exception:
         pass
-    return ch
+    pl = ch.plots[0]
+    pl.gap_width = gap
+    if overlap is not None:
+        pl.overlap = overlap
+    if labels:
+        pl.has_data_labels = True
+        pl.data_labels.font.size = Pt(lblsize)
+        pl.data_labels.font.bold = True
+        pl.data_labels.font.color.rgb = lblcolor or COLORS["ink"]
+    for i, c in enumerate(colors):
+        sr = pl.series[i]
+        sr.format.fill.solid()
+        sr.format.fill.fore_color.rgb = c
+    return ch, pl
 
 
-# ══════════════════════════════════════════════
-# 01 表紙
-# ══════════════════════════════════════════════
+C3 = 3.90   # 3カラム幅
+C2 = 5.95   # 2カラム幅
+X3 = [MX, MX + C3 + G, MX + (C3 + G) * 2]
+X2 = [MX, MX + C2 + G]
+
+# ══════════════════════════════════════════════════
+# 01  表紙
+# ══════════════════════════════════════════════════
 s = prs.slides.add_slide(BLANK)
-rect(s, 0, 0, SW, SH, GREEN)
-rect(s, 0, 0, SW, 0.16, GOLD)
-text(s, 1.15, 2.05, 11, 0.34, "MOCHIZUKI RESOL GOLF CLUB", 12.5, GOLD, True, font=FONT_EN)
-text(s, 1.15, 2.5, 11.2, 1.5,
-     "第2期会員募集\nWEB広告 運用分析レポート", 40, WHITE, True, line=1.16)
-rect(s, 1.15, 4.32, 1.5, 0.045, GOLD)
-text(s, 1.15, 4.62, 11, 0.42, "および 2026年8月 配信提案", 19, WHITE, False)
-text(s, 1.15, 6.25, 6, 0.28, "2026年7月22日", 12, GOLD, font=FONT_EN)
-text(s, 1.15, 6.58, 8, 0.28, "ゲンダイエージェンシー株式会社", 12.5, WHITE)
+rect(s, 8.75, 0, 4.58, SH, COLORS["primary"])
+rect(s, 8.75, 0, 0.06, SH, COLORS["accent"])
+txt(s, 0.90, 0.90, 5.0, 0.4, "望月リソルゴルフクラブ 第2期会員募集", SZ["cover_kick"],
+    COLORS["primary"], True)
+rect(s, 0.95, 1.55, 6.90, 0.02, COLORS["hairline"])
+txt(s, 0.90, 2.35, 7.4, 1.7, "WEB広告\n運用分析レポート", SZ["cover_title"],
+    COLORS["ink"], True, line=1.2)
+txt(s, 9.15, 2.90, 3.6, 1.8,
+    "Mochizuki Resol\nGolf Club\n\n運用分析 ＆\n8月配信提案",
+    SZ["cover_right"], COLORS["bg"], True, line=1.35)
+txt(s, 0.92, 4.20, 7.0, 0.6, "および 2026年8月 配信提案", SZ["cover_sub"], COLORS["text"])
+rect(s, 0.95, 5.95, 2.30, 0.04, COLORS["primary_dk"])
+txt(s, 0.92, 6.20, 7.0, 0.9, "2026年7月 ／ ゲンダイエージェンシー株式会社",
+    SZ["cover_meta"], COLORS["gray"])
+_st["page"] = 1
+_st["layouts"].append("A")
 
-# ══════════════════════════════════════════════
-# 02 本レポートについて
-# ══════════════════════════════════════════════
-s = slide_new("本レポートについて", "INTRODUCTION",
-              "成果が伸びていない要因を特定するため、第1期にさかのぼって全データを検証しました。")
+# ══ 02  本レポートについて ═══════════════════════════
+s = slide_new("はじめに", "本レポートについて", tag="C")
+txt(s, MX, BODY_Y, CW, 0.3,
+    "成果が伸びていない要因を特定するため、第1期にさかのぼって全データを検証しました。",
+    SZ["body"], COLORS["text"])
 rows = [
     ["調査対象", "期間", "内容"],
-    ["お問い合わせ実データ", "2025年8月〜2026年7月", "通知メールを1件ずつ精査。スパム・テスト送信を除外し、居住地・種別・意向を分類"],
-    ["Google Analytics 4", "2024年10月〜2026年7月", "セッション・地域・デバイス・流入元・サイト内行動・遷移先"],
-    ["Google広告", "2025年6月〜2026年7月", "キャンペーン別実績、検索テーマ、エリア設定、アセットグループ"],
-    ["Meta広告", "2024年10月〜2026年7月", "キャンペーン・広告セット別実績、月別のエリア設定の変遷、オーディエンス別成績"],
+    ["お問い合わせ実データ", "2025年8月〜2026年7月", "通知メールを1件ずつ精査。スパム・テスト送信を除外"],
+    ["Google Analytics 4", "2024年10月〜2026年7月", "セッション・地域・デバイス・流入元・遷移先"],
+    ["Google広告", "2025年6月〜2026年7月", "キャンペーン別実績、検索テーマ、エリア設定"],
+    ["Meta広告", "2024年10月〜2026年7月", "月別のエリア設定の変遷、オーディエンス別成績"],
     ["DV360", "2024年11月〜2026年7月", "全キャンペーン実績、配信面別データ 9,833行"],
     ["LINEヤフー広告", "2024年10月〜2025年6月", "配信実績（表示・クリック・クリック率）"],
     ["ご請求データ", "2024年9月〜2026年7月", "媒体別・月別の費用構成"],
-    ["ランディングページ", "2026年7月22日", "実機での動作検証、入力導線の確認"],
 ]
-table(s, ML, BODY_TOP + 0.12, CW, rows, [2.5, 2.4, 7.2],
-      aligns=[PP_ALIGN.LEFT] * 3, fs=10.5, row_h=0.365)
-callout(s, ML, 6.18, CW, 0.66,
-        "推測で数字を埋めていません。確認できなかった項目は「未確認」と明記しています。"
-        "件数が少ない項目は、断定せず「方向性」として扱っています。")
+table(s, MX, BODY_Y + 0.45, CW, rows, [2.7, 2.6, 6.8],
+      aligns=[PP_ALIGN.LEFT] * 3, row_h=0.42, head_h=0.44)
+card(s, MX, 6.16, CW, 0.72, COLORS["accent"])
+txt(s, MX + 0.24, 6.16, CW - 0.48, 0.72,
+    "推測で数字を埋めていません。確認できなかった項目は「未確認」と明記し、件数が少ない項目は断定せず「方向性」として扱っています。",
+    SZ["body"], COLORS["text"], anchor=MSO_ANCHOR.MIDDLE)
 
-# ══════════════════════════════════════════════
-# 03 サマリー
-# ══════════════════════════════════════════════
-s = slide_new("分析で分かったこと", "SUMMARY",
-              "ご予算を30%増やし集客を1.8倍にしたにもかかわらず、お問い合わせは1/3以下に減少しました。")
-findings = [
-    ("01", "成果の53%は、ゴルフ場から\n概ね70km圏内の方でした", "第3章"),
-    ("02", "配信エリアと成果は、\n月単位できれいに対応していました", "第4章"),
-    ("03", "成果が出ていた時期は、\n3媒体がバランスしていました", "第5章"),
-    ("04", "媒体によって「クリックがサイトに\n届く割合」が2.7倍違います", "第6章"),
-    ("05", "検索広告のクリックの70%が、\nすでに貴クラブをご存知の方でした", "第7章"),
-    ("06", "じっくり読まれているのはパソコン。\nしかし流入の96%はスマートフォン", "第8章"),
-]
-cw, ch_, gx, gy = 3.72, 1.42, 0.29, 0.26
-for i, (no, body, ref) in enumerate(findings):
-    x = ML + (i % 3) * (cw + gx)
-    y = BODY_TOP + 0.34 + (i // 3) * (ch_ + gy)
-    rect(s, x, y, cw, ch_, SOFT)
-    rect(s, x, y, 0.05, ch_, GREEN)
-    text(s, x + 0.22, y + 0.16, 0.6, 0.3, no, 15, GOLD, True, font=FONT_EN)
-    text(s, x + 0.22, y + 0.5, cw - 0.44, 0.72, body, 12, INK, True, line=1.3)
-    text(s, x + cw - 0.85, y + ch_ - 0.34, 0.66, 0.24, ref, 9, MUTED, align=PP_ALIGN.RIGHT)
-callout(s, ML, 6.28, CW, 0.56,
-        "原因は「広告の量」ではなく、配信の設計にあります。", kind="info")
+# ══ 03  サマリー（カード6） ═══════════════════════════
+s = slide_new("概要", "分析で分かったこと", tag="E")
+txt(s, MX, BODY_Y, CW, 0.3,
+    "ご予算を30%増やし集客を1.8倍にしたにもかかわらず、お問い合わせは1/3以下に減少しました。",
+    SZ["body"], COLORS["text"])
+F = [("01", "成果の53%は、ゴルフ場から\n概ね70km圏内の方でした", COLORS["primary"]),
+     ("02", "配信エリアと成果は、月単位で\nきれいに対応していました", COLORS["accent"]),
+     ("03", "成果が出ていた時期は、\n3媒体がバランスしていました", COLORS["gray"]),
+     ("04", "媒体によってクリックがサイトに\n届く割合が2.7倍違います", COLORS["primary"]),
+     ("05", "検索クリックの70%が、すでに\n貴クラブをご存知の方でした", COLORS["accent"]),
+     ("06", "じっくり読まれているのはPC。\nしかし流入の96%はスマホです", COLORS["gray"])]
+for i, (no, body, acc) in enumerate(F):
+    x = X3[i % 3]
+    y = BODY_Y + 0.5 + (i // 3) * (1.62 + G)
+    card(s, x, y, C3, 1.62, acc)
+    txt(s, x + 0.22, y + 0.24, C3 - 0.44, 0.28, no, SZ["label"], acc, True)
+    txt(s, x + 0.22, y + 0.6, C3 - 0.44, 0.8, body, SZ["card_head"], COLORS["ink"], True, line=1.4)
+note_line(s, 6.62,
+          "証拠クラス〈実測〉：全項目が各媒体API・GA4・お問い合わせ実データからの実測値です。業界一般値・当社仮説は含みません。")
 
-# ══════════════════════════════════════════════
-# 04 第1期・第2期の比較
-# ══════════════════════════════════════════════
-s = slide_new("第1期・第2期の比較", "第2章　成果の全体像")
-cards = [
-    ("+30.0%", "月あたりご請求額", "¥251,250 → ¥326,667", GREEN),
-    ("1.8倍", "月あたりサイト集客", "6,427 → 11,715", GREEN),
-    ("−89%", "お問い合わせ", "19件 → 2件", ALERT),
-    ("4.63倍", "獲得単価", "¥105,789 → ¥490,000", ALERT),
-]
-cwd = (CW - 0.3 * 3) / 4
-for i, (v, l, n, c) in enumerate(cards):
-    stat(s, ML + i * (cwd + 0.3), BODY_TOP + 0.18, cwd, 1.72, v, l, n, c,
-         SOFT if c == GREEN else ALERT_PALE, vsize=29)
+# ══ 04  Divider ═════════════════════════════════
+divider("PART 1", "成果の全体像",
+        "第1期（2025年8月〜2026年3月）と第2期（2026年5月〜7月）を、同じ基準で比較します。")
+
+# ══ 05  KPI ═════════════════════════════════════
+s = slide_new("1 成果", "第1期・第2期の比較", tag="F")
+K = [("+30.0%", "月あたりご請求額", "¥251,250 → ¥326,667", COLORS["primary"], COLORS["primary"]),
+     ("1.8倍", "月あたりサイト集客", "6,427 → 11,715", COLORS["primary"], COLORS["primary"]),
+     ("−89%", "お問い合わせ", "19件 → 2件", COLORS["accent"], COLORS["accent"]),
+     ("4.63倍", "獲得単価", "¥105,789 → ¥490,000", COLORS["accent"], COLORS["accent"])]
+w4 = (CW - G * 3) / 4
+for i, (v, l, n, ac, vc) in enumerate(K):
+    kpi(s, MX + i * (w4 + G), BODY_Y, w4, 1.9, v, l, n, accent=ac, vcolor=vc)
 rows = [
     ["", "第1期  2025年8月〜2026年3月（8ヶ月）", "第2期  2026年5月〜7月（3ヶ月）"],
     ["ご請求額 合計", "¥2,010,000", "¥980,000"],
@@ -273,110 +349,89 @@ rows = [
     ["お問い合わせ率（CVR）", "0.037%", "0.006%"],
     ["**獲得単価", "**¥105,789", "**¥490,000"],
 ]
-table(s, ML, BODY_TOP + 2.22, CW, rows, [4.2, 3.85, 3.85], hl_rows=[3, 5], row_h=0.365)
-callout(s, ML, 6.3, CW, 0.54, "集客量は増えています。増えた集客が、お問い合わせに結びついていません。")
+table(s, MX, BODY_Y + 2.12, CW, rows, [4.2, 4.0, 3.9], hl=[3, 5], row_h=0.42, head_h=0.44)
+note_line(s, 6.5,
+          "〈実測〉ご請求額＝弊社基幹システム／集客＝GA4／お問い合わせ＝通知メールの実件数（スパム・テスト送信を除外）。\n"
+          "比較期間はお問い合わせの実データが確認できている期間に揃え、2026年4月（LP刷新期間）は除外しています。")
 
-# ══════════════════════════════════════════════
-# 05 月次推移
-# ══════════════════════════════════════════════
-s = slide_new("月次推移 ── 最良月は2026年3月", "第2章　成果の全体像",
-              "第1期は月を追うごとに改善していました。2026年1月2件 → 2月3件 → 3月5件。")
-cd = CategoryChartData()
-cd.categories = ["25/8", "25/9", "25/10", "25/11", "25/12", "26/1", "26/2", "26/3", "26/5", "26/6", "26/7"]
-cd.add_series("お問い合わせ件数", (1, 3, 3, 0, 2, 2, 3, 5, 1, 1, 0))
-gf = s.shapes.add_chart(XL_CHART_TYPE.COLUMN_CLUSTERED, In(ML), In(BODY_TOP + 0.5),
-                        In(CW), In(3.15), cd)
-ch = chart_style(gf, gridlines=True)
-pl = ch.plots[0]
-pl.gap_width = 55
-pl.has_data_labels = True
-dl = pl.data_labels
-dl.font.size = Pt(11)
-dl.font.bold = True
-dl.font.color.rgb = INK
-dl.position = XL_LABEL_POSITION.OUTSIDE_END
-ser = pl.series[0]
-ser.format.fill.solid()
-ser.format.fill.fore_color.rgb = GREEN_MID
-for idx in (7,):
-    pt = ser.points[idx]
-    pt.format.fill.solid()
-    pt.format.fill.fore_color.rgb = GOLD
+# ══ 06  月次推移 ═════════════════════════════════
+s = slide_new("1 成果", "月次推移 ── 最良月は2026年3月", tag="G",
+              lead="第1期は月を追うごとに改善していました。2026年1月2件 → 2月3件 → 3月5件。")
+ch, pl = chart(s, XL_CHART_TYPE.COLUMN_CLUSTERED, MX, BODY_Y + 0.24, CW, 2.95,
+               ["25/8", "25/9", "25/10", "25/11", "25/12", "26/1", "26/2", "26/3", "26/5", "26/6", "26/7"],
+               [("お問い合わせ件数", (1, 3, 3, 0, 2, 2, 3, 5, 1, 1, 0))],
+               [COLORS["primary"]], gap=55)
+pl.data_labels.position = XL_LABEL_POSITION.OUTSIDE_END
+p_ = pl.series[0].points[7]
+p_.format.fill.solid()
+p_.format.fill.fore_color.rgb = COLORS["accent"]
 rows = [
-    ["月", "2025/8", "2025/9", "2025/10", "2025/11", "2025/12", "2026/1", "2026/2", "2026/3", "2026/5", "2026/6", "2026/7"],
+    ["月", "25/8", "25/9", "25/10", "25/11", "25/12", "26/1", "26/2", "26/3", "26/5", "26/6", "26/7"],
     ["ご請求額（千円）", "300", "300", "280", "100", "150", "330", "300", "**250", "300", "380", "300"],
     ["獲得単価（千円）", "300", "100", "93", "—", "75", "165", "100", "**50", "300", "380", "—"],
 ]
-table(s, ML, BODY_TOP + 3.85, CW, rows, [2.15] + [0.9] * 11,
-      aligns=[PP_ALIGN.LEFT] + [PP_ALIGN.RIGHT] * 11, fs=9.5, hfs=9, row_h=0.33, head_h=0.33)
-note(s, 6.62, "※ 2026年4月はLP刷新期間のため比較から除外。2026年7月は7月21日時点。オレンジは全期間で最良の月。")
+table(s, MX, BODY_Y + 3.4, CW, rows, [2.2] + [0.9] * 11,
+      aligns=[PP_ALIGN.LEFT] + [PP_ALIGN.RIGHT] * 11, row_h=0.4, head_h=0.4, fs=10.5)
+note_line(s, 6.62,
+          "〈実測〉オレンジは全期間で最良の月。〈両論併記〉2025年11月の0件は予算を¥100,000に縮小した月である点を付記します。")
 
-# ══════════════════════════════════════════════
-# 06 お問い合わせの質
-# ══════════════════════════════════════════════
-s = slide_new("件数だけでなく、見込み度も下がっています", "第2章　成果の全体像",
-              "フォーム「会員権について」のご回答内訳です。")
-stat(s, ML, BODY_TOP + 0.3, 5.7, 2.1, "68%", "第1期（19件）｜具体的に検討している",
-     "13件が「具体的に検討している」と回答", GREEN, SOFT, vsize=48)
-stat(s, ML + 6.13, BODY_TOP + 0.3, 5.7, 2.1, "0%", "第2期（2件）｜具体的に検討している",
-     "「興味がある」1件、来場予定の方からのご連絡1件", ALERT, ALERT_PALE, vsize=48)
+# ══ 07  見込み度 ═════════════════════════════════
+s = slide_new("1 成果", "件数だけでなく、見込み度も下がっています", tag="D")
+kpi(s, X2[0], BODY_Y, C2, 1.85, "68%", "第1期（19件）｜具体的に検討している",
+    "13件が「具体的に検討している」と回答", accent=COLORS["primary"], vsize=36)
+kpi(s, X2[1], BODY_Y, C2, 1.85, "0%", "第2期（2件）｜具体的に検討している",
+    "「興味がある」1件、来場予定の方からのご連絡1件", accent=COLORS["accent"],
+    vcolor=COLORS["accent"], vsize=36)
 rows = [
     ["会員権について", "第1期（19件）", "第2期（2件）"],
     ["**具体的に検討している", "**13件（68%）", "**0件"],
     ["興味がある", "7件", "1件"],
     ["未選択・その他", "—", "1件"],
 ]
-table(s, ML, BODY_TOP + 2.72, CW, rows, [5.6, 3.1, 3.1], hl_rows=[1], row_h=0.37)
-callout(s, ML, 6.16, CW, 0.66,
-        "第1期は7割が「具体的に検討している」でした。第2期の2件は、いずれも購入検討の段階に至っていません。",
-        kind="alert")
+table(s, MX, BODY_Y + 2.1, CW, rows, [5.6, 3.3, 3.2], hl=[1], row_h=0.46, head_h=0.46)
+note_line(s, 6.14,
+          "〈実測〉お問い合わせ通知メールの回答項目を1件ずつ分類。母集団は第1期19件・第2期2件（いずれも全件）。\n"
+          "〈方向性〉第2期は母数が2件と少なく、比率は断定ではなく方向性としてご理解ください。")
 
-# ══════════════════════════════════════════════
-# 07 入口は資料請求
-# ══════════════════════════════════════════════
-s = slide_new("誰が申し込んでいるのか ①　入口は「資料請求」です", "第3章　お問い合わせ19件の分析",
-              "第1期のお問い合わせ19件を、1件ずつ内容を確認して分類しました。")
-stat(s, ML, BODY_TOP + 0.35, 4.05, 2.35, "95%", "お問い合わせ種別｜資料のご請求",
-     "19件中18件", GREEN, SOFT, vsize=58)
+# ══ 08  Divider ═════════════════════════════════
+divider("PART 2", "誰が申し込んでいるのか",
+        "第1期のお問い合わせ19件を、1件ずつ内容を確認して分類しました。")
+
+# ══ 09  入口 ════════════════════════════════════
+s = slide_new("2 顧客", "入口は「資料請求」です", tag="F")
+kpi(s, MX, BODY_Y, 4.0, 2.3, "95%", "お問い合わせ種別｜資料のご請求",
+    "19件中18件", accent=COLORS["accent"], vcolor=COLORS["accent"], vsize=44)
 rows = [
     ["お問い合わせ種別", "件数", "比率"],
     ["**資料のご請求", "**18件", "**95%"],
     ["視察プレーのお問い合わせ", "3件", "16%"],
     ["その他", "1件", "5%"],
 ]
-table(s, ML + 4.45, BODY_TOP + 0.35, CW - 4.45, rows, [4.6, 1.5, 1.5], hl_rows=[1], row_h=0.42)
-note(s, BODY_TOP + 2.32, "※ 複数選択のため合計は100%を超えます")
-callout(s, ML, BODY_TOP + 3.0, CW, 1.12,
-        "示唆　視察プレーの直接お申し込みは3件のみでした。大半の方は、まず資料を請求し、そこから検討に入られています。\n"
-        "8月に視察プレーを訴求する場合も、入口は「資料請求」に置いたほうが実際の行動に沿います。")
+table(s, MX + 4.0 + G, BODY_Y, CW - 4.0 - G, rows, [4.4, 1.6, 1.6], hl=[1], row_h=0.5, head_h=0.5)
+txt(s, MX + 4.0 + G, BODY_Y + 2.06, CW - 4.0 - G, 0.3,
+    "※ 複数選択のため合計は100%を超えます", SZ["fine"], COLORS["muted"])
+panel(s, MX, BODY_Y + 2.62, CW, 1.42, "示唆", "入口は資料請求に置くべきです",
+      "視察プレーの直接お申し込みは3件のみ。大半の方は、まず資料を請求し、そこから検討に入られています。\n"
+      "8月に視察プレーを訴求する場合も、いきなり来場を求めるのではなく、資料請求の受け皿を用意しつつ期限を訴えるのが自然です。",
+      accent=COLORS["primary"])
+note_line(s, 6.24,
+          "〈実測〉母集団＝第1期のお問い合わせ全19件。〈当社仮説〉示唆部分は実測の解釈であり、検証はこれからです。")
 
-# ══════════════════════════════════════════════
-# 08 距離帯別
-# ══════════════════════════════════════════════
-s = slide_new("誰が申し込んでいるのか ②　成果の53%は概ね70km圏内", "第3章　お問い合わせ19件の分析")
-cd = CategoryChartData()
-cd.categories = ["概ね30km圏\n佐久・小諸・軽井沢・御代田", "概ね40km圏\n上田市",
-                 "概ね70km圏\n群馬県高崎市", "概ね90km圏\n長野県松本市",
-                 "首都圏\n東京・神奈川・千葉"]
-cd.add_series("件数", (7, 2, 1, 1, 8))
-gf = s.shapes.add_chart(XL_CHART_TYPE.BAR_CLUSTERED, In(ML), In(BODY_TOP + 0.28),
-                        In(7.6), In(3.5), cd)
-ch = chart_style(gf, cat_size=9.5)
-pl = ch.plots[0]
-pl.gap_width = 45
-pl.has_data_labels = True
-pl.data_labels.font.size = Pt(12)
-pl.data_labels.font.bold = True
-pl.data_labels.font.color.rgb = INK
-ser = pl.series[0]
-ser.format.fill.solid()
-ser.format.fill.fore_color.rgb = GREEN_MID
+# ══ 10  距離帯 ══════════════════════════════════
+s = slide_new("2 顧客", "成果の53%は、ゴルフ場から概ね70km圏内でした", tag="D")
+ch, pl = chart(s, XL_CHART_TYPE.BAR_CLUSTERED, MX, BODY_Y, 7.3, 3.4,
+               ["概ね30km圏\n佐久・小諸・軽井沢・御代田", "概ね40km圏\n上田市",
+                "概ね70km圏\n群馬県高崎市", "概ね90km圏\n長野県松本市",
+                "首都圏\n東京・神奈川・千葉"],
+               [("件数", (7, 2, 1, 1, 8))], [COLORS["primary"]], gap=45, lblsize=12)
 for idx in (0, 1, 2):
-    pt = ser.points[idx]
-    pt.format.fill.solid()
-    pt.format.fill.fore_color.rgb = GOLD
-stat(s, ML + 7.95, BODY_TOP + 0.28, 3.88, 1.62, "53%", "概ね70km圏内の累計",
-     "19件中10件。佐久市内が2件、隣接町村が5件", GOLD, SOFT, vsize=48)
+    p_ = pl.series[0].points[idx]
+    p_.format.fill.solid()
+    p_.format.fill.fore_color.rgb = COLORS["accent"]
+rx, rw = MX + 7.3 + G, CW - 7.3 - G
+kpi(s, rx, BODY_Y, rw, 1.62, "53%", "概ね70km圏内の累計",
+    "19件中10件。佐久市内2件・隣接町村5件", accent=COLORS["accent"],
+    vcolor=COLORS["accent"], vsize=36)
 rows = [
     ["距離帯", "件数", "累計"],
     ["**概ね30km圏", "**7件", "**37%"],
@@ -385,53 +440,41 @@ rows = [
     ["概ね90km圏", "1件", "58%"],
     ["首都圏", "8件", "100%"],
 ]
-table(s, ML + 7.95, BODY_TOP + 2.06, 3.88, rows, [2.1, 0.9, 0.9], fs=10, row_h=0.29, head_h=0.3)
-callout(s, ML, 6.22, CW, 0.6,
-        "ゴルフ場のすぐ近くから、着実にお問い合わせが来ています。")
+table(s, rx, BODY_Y + 1.82, rw, rows, [2.1, 0.9, 0.9], row_h=0.3, head_h=0.32, fs=10.5)
+note_line(s, 6.0,
+          "〈実測〉距離帯はお問い合わせ記載の郵便番号・住所から分類。\n"
+          "〈両論併記〉首都圏も8件（42%）あり、次ページの通り検討度はむしろ高い水準です。")
 
-# ══════════════════════════════════════════════
-# 09 地元と首都圏
-# ══════════════════════════════════════════════
-s = slide_new("誰が申し込んでいるのか ③　地元は件数、首都圏は検討度", "第3章　お問い合わせ19件の分析",
-              "地元と首都圏では、役割が違います。一律に扱うべきではありません。")
-bw = (CW - 0.42) / 2
-for i, (ttl, cnt, rate, desc, col, fill) in enumerate([
-    ("地元（長野・群馬）", "11件", "64%", "件数が多い。ゴルフ場のすぐ近くから\n着実にお問い合わせが来ています", GREEN, SOFT),
-    ("首都圏（東京・神奈川・千葉）", "8件", "75%", "件数は少ないが、検討度が高い。\n「遠い」ことを自覚したうえでご検討", GOLD, SOFT),
-]):
-    x = ML + i * (bw + 0.42)
-    rect(s, x, BODY_TOP + 0.28, bw, 2.72, fill)
-    rect(s, x, BODY_TOP + 0.28, bw, 0.055, col)
-    text(s, x + 0.28, BODY_TOP + 0.5, bw - 0.56, 0.3, ttl, 14, INK, True)
-    text(s, x + 0.28, BODY_TOP + 0.92, 2.4, 0.62, cnt, 34, INK, True, font=FONT_EN, line=1.0)
-    text(s, x + 0.28, BODY_TOP + 1.58, bw - 0.56, 0.24, "うち「具体的に検討している」", 10, MUTED)
-    text(s, x + 0.28, BODY_TOP + 1.84, 2.6, 0.56, rate, 30, col, True, font=FONT_EN, line=1.0)
-    text(s, x + 0.28, BODY_TOP + 2.42, bw - 0.56, 0.5, desc, 10.5, MUTED, line=1.3)
-callout(s, ML, BODY_TOP + 3.24, CW, 1.12,
-        "唯一の遠方からの資料請求（神奈川県茅ヶ崎市）は、お問い合わせ本文で「自宅から遠方のため、まずは資料をもとに検討を始めたい」と\n"
-        "述べられていました。地元は件数、首都圏は検討度。別枠に分けて成果を測るべきです。")
-note(s, 6.62, "※ 件数が19件と少ないため、これは断定ではなく方向性としてご理解ください。")
+# ══ 11  地元と首都圏 ════════════════════════════
+s = slide_new("2 顧客", "地元は件数、首都圏は検討度", tag="D",
+              lead="地元と首都圏では役割が違います。一律に扱うべきではありません。")
+panel(s, X2[0], BODY_Y + 0.32, C2, 2.5, "地元（長野・群馬）",
+      "11件 ／ うち具体的に検討 64%",
+      "件数が多い。ゴルフ場のすぐ近くから着実にお問い合わせが来ています。\n"
+      "佐久市内が2件、隣接する町村が5件。",
+      accent=COLORS["primary"])
+panel(s, X2[1], BODY_Y + 0.32, C2, 2.5, "首都圏（東京・神奈川・千葉）",
+      "8件 ／ うち具体的に検討 75%",
+      "件数は少ないが、検討度が高い。「遠い」ことを自覚したうえでご検討されています。",
+      dark=True)
+panel(s, MX, BODY_Y + 3.06, CW, 1.2, "結論", "別枠に分けて成果を測るべきです",
+      "唯一の遠方からの資料請求（神奈川県茅ヶ崎市）は「自宅から遠方のため、まずは資料をもとに検討を始めたい」と述べられていました。",
+      accent=COLORS["accent"])
+note_line(s, 6.44,
+          "〈実測〉母集団＝19件（地元11件・首都圏8件）。〈方向性〉母数が少ないため、比率の差は断定ではなく方向性です。")
 
-# ══════════════════════════════════════════════
-# 10 成果と集客のミスマッチ
-# ══════════════════════════════════════════════
-s = slide_new("成果を生む地域に、集客が向いていません", "第4章　配信エリアの分析")
-cd = CategoryChartData()
-cd.categories = ["長野県", "群馬県", "東京都", "神奈川県"]
-cd.add_series("第1期の成果構成比", (53, 5, 32, 5))
-cd.add_series("2026年7月の集客構成比", (16.7, 2.6, 35.7, 13.6))
-gf = s.shapes.add_chart(XL_CHART_TYPE.COLUMN_CLUSTERED, In(ML), In(BODY_TOP + 0.24),
-                        In(7.5), In(3.9), cd)
-ch = chart_style(gf, legend=True, gridlines=True)
-pl = ch.plots[0]
-pl.gap_width = 70
-pl.has_data_labels = True
-pl.data_labels.font.size = Pt(10)
-pl.data_labels.font.color.rgb = INK
-pl.series[0].format.fill.solid()
-pl.series[0].format.fill.fore_color.rgb = GREEN
-pl.series[1].format.fill.solid()
-pl.series[1].format.fill.fore_color.rgb = RGBColor(0xC8, 0xCF, 0xCB)
+# ══ 12  Divider ═════════════════════════════════
+divider("PART 3", "配信の分析",
+        "エリア設定・媒体構成が、成果とどう対応していたかを月単位で検証しました。")
+
+# ══ 13  ミスマッチ ══════════════════════════════
+s = slide_new("3 配信", "成果を生む地域に、集客が向いていません", tag="D")
+chart(s, XL_CHART_TYPE.COLUMN_CLUSTERED, MX, BODY_Y, 7.3, 3.5,
+      ["長野県", "群馬県", "東京都", "神奈川県"],
+      [("第1期の成果構成比", (53, 5, 32, 5)),
+       ("2026年7月の集客構成比", (16.7, 2.6, 35.7, 13.6))],
+      [COLORS["primary"], COLORS["border"]], legend=True, gap=70, lblsize=10)
+rx, rw = MX + 7.3 + G, CW - 7.3 - G
 rows = [
     ["地域", "成果", "集客", "差"],
     ["**長野県", "**53%", "**16.7%", "**−36pt"],
@@ -439,17 +482,17 @@ rows = [
     ["東京都", "32%", "35.7%", "+4pt"],
     ["神奈川県", "5%", "13.6%", "+9pt"],
 ]
-table(s, ML + 7.85, BODY_TOP + 0.24, 3.98, rows, [1.5, 0.85, 0.9, 0.95],
-      hl_rows=[1], fs=10.5, row_h=0.36)
-callout(s, ML + 7.85, BODY_TOP + 2.24, 3.98, 1.9,
-        "成果の半分以上を生む長野県に、\n集客の2割弱しか向けていません。\n\n"
-        "長野県からの流入は平均滞在5.8秒と、\n東京（3.2秒）の1.8倍。集客量は最も\n少ないのに、最も読まれています。", kind="alert")
+table(s, rx, BODY_Y, rw, rows, [1.5, 0.85, 0.9, 0.95], hl=[1], row_h=0.42, head_h=0.44)
+panel(s, rx, BODY_Y + 2.28, rw, 1.22, "所見", "向き先がズレています",
+      "成果の半分以上を生む長野県に、集客の2割弱しか向けていません。",
+      accent=COLORS["accent"])
+note_line(s, 6.0,
+          "〈実測〉成果構成比＝第1期19件の居住地分布／集客構成比＝GA4の2026年7月セッション。\n"
+          "分母が異なるため同一指標の比較ではなく、「向き先のズレ」を示すものです。")
 
-# ══════════════════════════════════════════════
-# 11 地域別の流入品質
-# ══════════════════════════════════════════════
-s = slide_new("長野からの流入は、最も質が高い", "第4章　配信エリアの分析",
-              "第2期（2026年5月〜7月）の地域別。集客量が最も少ない長野が、最も読まれています。")
+# ══ 14  地域別の質 ══════════════════════════════
+s = slide_new("3 配信", "長野からの流入は、最も質が高い", tag="G",
+              lead="第2期（2026年5月〜7月）の地域別。集客量が最も少ない長野が、最も読まれています。")
 rows = [
     ["地域", "セッション", "構成比", "エンゲージ率", "平均滞在"],
     ["東京都", "10,262", "35.7%", "21.1%", "3.2秒"],
@@ -458,18 +501,17 @@ rows = [
     ["埼玉県", "1,918", "6.7%", "22.7%", "2.5秒"],
     ["大阪府", "1,360", "4.7%", "24.0%", "2.5秒"],
 ]
-table(s, ML, BODY_TOP + 0.3, CW, rows, [3.4, 2.2, 2.0, 2.2, 2.0], hl_rows=[2], row_h=0.44)
-callout(s, ML, BODY_TOP + 3.12, CW, 1.2,
-        "長野県は、集客構成比では4番目の東京の半分以下。しかし平均滞在は東京の1.8倍、エンゲージ率も最も高い水準です。\n"
-        "「量は最も少なく、質は最も高い」地域に、予算が向いていません。")
+table(s, MX, BODY_Y + 0.28, CW, rows, [3.3, 2.2, 2.0, 2.2, 2.0], hl=[2], row_h=0.5, head_h=0.5)
+panel(s, MX, BODY_Y + 3.42, CW, 1.16, "所見", "量は最も少なく、質は最も高い",
+      "長野県は集客構成比では東京の半分以下。しかし平均滞在は東京の1.8倍、エンゲージ率も最も高い水準です。",
+      accent=COLORS["primary"])
+note_line(s, 6.62,
+          "〈実測〉GA4（2026年5月1日〜7月21日）。平均滞在は総エンゲージメント時間÷セッション数で算出。")
 
-# ══════════════════════════════════════════════
-# 12 エリア設定と成果の月次対応
-# ══════════════════════════════════════════════
-s = slide_new("配信エリアの設定と成果は、月単位で対応していました", "第4章　配信エリアの分析",
-              "Meta広告のエリア設定を月別に調べたところ、成果と明確に対応していました。")
+# ══ 15  エリア設定と成果 ═════════════════════════
+s = slide_new("3 配信", "配信エリアの設定と成果は、月単位で対応していました", tag="D")
 rows = [
-    ["月", "配信エリア", "お問い合わせ"],
+    ["月", "Meta広告の配信エリア", "お問い合わせ"],
     ["2025年9月", "東京23区", "3件"],
     ["2025年10月", "ゴルフ場から半径40km", "3件"],
     ["2025年11月", "Meta配信なし", "0件"],
@@ -480,99 +522,89 @@ rows = [
     ["2026年6月", "半径50km", "1件"],
     ["**2026年7月", "**東京・神奈川・長野の3都県に拡大", "**0件"],
 ]
-table(s, ML, BODY_TOP + 0.28, 7.5, rows, [2.0, 4.0, 1.8],
-      aligns=[PP_ALIGN.LEFT, PP_ALIGN.LEFT, PP_ALIGN.RIGHT],
-      hl_rows=[7], row_h=0.345)
-stat(s, ML + 7.85, BODY_TOP + 0.28, 3.98, 1.5, "12件", "半径24〜50km圏で運用していた月の合計",
-     None, GREEN, SOFT, vsize=40)
-stat(s, ML + 7.85, BODY_TOP + 1.94, 3.98, 1.5, "0件", "3都県に広げた2026年7月",
-     None, ALERT, ALERT_PALE, vsize=40)
-callout(s, ML + 7.85, BODY_TOP + 3.6, 3.98, 1.28,
-        "留保　7月1日にはエリア拡大に加え、\nGoogle広告のP-MAX移行・DV360の停止も\n同時に起きています。エリア単独の因果は\n統計的には証明できません。")
+table(s, MX, BODY_Y, 7.3, rows, [1.9, 3.7, 1.7],
+      aligns=[PP_ALIGN.LEFT, PP_ALIGN.LEFT, PP_ALIGN.RIGHT], hl=[7], row_h=0.4, head_h=0.42)
+rx, rw = MX + 7.3 + G, CW - 7.3 - G
+kpi(s, rx, BODY_Y, rw, 1.4, "12件", "半径24〜50km圏で運用していた月の合計",
+    accent=COLORS["primary"], vsize=30)
+kpi(s, rx, BODY_Y + 1.6, rw, 1.4, "0件", "3都県に広げた2026年7月",
+    accent=COLORS["accent"], vcolor=COLORS["accent"], vsize=30)
+panel(s, rx, BODY_Y + 3.2, rw, 1.34, "留保", "因果は証明できません",
+      "7月1日にはエリア拡大に加え、Google広告のP-MAX移行・DV360停止も同時に発生しています。",
+      accent=COLORS["gray"])
+note_line(s, 6.62,
+          "〈実測〉Meta Marketing API から月別の広告セット設定を取得。〈両論併記〉因果の留保を右下に明記しています。")
 
-# ══════════════════════════════════════════════
-# 13 媒体構成の変遷
-# ══════════════════════════════════════════════
-s = slide_new("成果が出ていた時期は、3媒体がバランスしていました", "第5章　媒体構成の分析")
-cd = CategoryChartData()
-cd.categories = ["2025年9月\n3件", "2025年10月\n3件", "2026年2月\n3件", "2026年3月\n5件",
-                 "2026年5月\n1件", "2026年6月\n1件", "2026年7月\n0件"]
-cd.add_series("Google広告", (33, 40, 50, 40, 17, 14, 17))
-cd.add_series("Meta広告", (33, 40, 33, 20, 33, 14, 83))
-cd.add_series("DV360", (33, 20, 17, 40, 50, 71, 0))
-gf = s.shapes.add_chart(XL_CHART_TYPE.COLUMN_STACKED, In(ML), In(BODY_TOP + 0.24),
-                        In(7.8), In(3.75), cd)
-ch = chart_style(gf, cat_size=9.5, legend=True)
-pl = ch.plots[0]
-pl.gap_width = 55
-pl.has_data_labels = True
-pl.data_labels.font.size = Pt(9)
-pl.data_labels.font.color.rgb = WHITE
-for i, c in enumerate([GREEN, GOLD, RGBColor(0x8F, 0xA5, 0x9A)]):
-    pl.series[i].format.fill.solid()
-    pl.series[i].format.fill.fore_color.rgb = c
+# ══ 16  媒体構成 ════════════════════════════════
+s = slide_new("3 配信", "成果が出ていた時期は、3媒体がバランスしていました", tag="G")
+chart(s, XL_CHART_TYPE.COLUMN_STACKED, MX, BODY_Y, 7.6, 3.6,
+      ["25年9月\n3件", "25年10月\n3件", "26年2月\n3件", "26年3月\n5件",
+       "26年5月\n1件", "26年6月\n1件", "26年7月\n0件"],
+      [("Google広告", (33, 40, 50, 40, 17, 14, 17)),
+       ("Meta広告", (33, 40, 33, 20, 33, 14, 83)),
+       ("DV360", (33, 20, 17, 40, 50, 71, 0))],
+      [COLORS["primary"], COLORS["accent"], COLORS["gray"]],
+      legend=True, gap=55, lblsize=9, lblcolor=COLORS["bg"])
+rx, rw = MX + 7.6 + G, CW - 7.6 - G
 rows = [
     ["", "Google", "Meta", "DV360", "件数/月"],
     ["**第1期 月平均", "**38%", "33%", "28%", "**2.4件"],
     ["**第2期 月平均", "**16%", "42%", "42%", "**0.67件"],
 ]
-table(s, ML + 8.15, BODY_TOP + 0.24, 3.68, rows, [1.5, 0.75, 0.7, 0.8, 0.9],
-      fs=9.5, hfs=9, row_h=0.42, head_h=0.34)
-callout(s, ML + 8.15, BODY_TOP + 1.5, 3.68, 2.5,
-        "Google広告が月¥75,000から\n¥40,000へ約半減しました。\n\n"
-        "そして2026年7月はMeta広告に\n83%が集中し、0件でした。\n\n"
-        "最良月（2026年3月）でさえ\nMeta広告は¥40,000です。", kind="alert")
-note(s, 6.5, "※ 構成比は配信費ベース。金額の多寡ではなく、媒体の組み合わせが成果に効いていました。")
+table(s, rx, BODY_Y, rw, rows, [1.5, 0.75, 0.7, 0.8, 0.9], row_h=0.5, head_h=0.42, fs=10.5)
+panel(s, rx, BODY_Y + 1.5, rw, 2.1, "所見", "Google広告が半減しました",
+      "月¥75,000から¥40,000へ約半減。\n2026年7月はMeta広告に83%が集中し、0件でした。\n"
+      "最良月でさえMeta広告は¥40,000です。",
+      accent=COLORS["accent"])
+note_line(s, 6.0,
+          "〈実測〉構成比＝ご請求データの配信費ベース。金額の多寡ではなく、媒体の組み合わせが成果に対応していました。")
 
-# ══════════════════════════════════════════════
-# 14 サイト到達率
-# ══════════════════════════════════════════════
-s = slide_new("新しい評価軸 ── 買ったクリックは、サイトに届いているか", "第6章　配信品質の分析")
-rect(s, ML, BODY_TOP + 0.18, CW, 0.72, GREEN_PALE)
-text(s, ML + 0.3, BODY_TOP + 0.3, CW - 0.6, 0.5,
-     "サイト到達率　＝　GA4のセッション数　÷　広告のクリック数",
-     15, GREEN, True, PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-text(s, ML, BODY_TOP + 1.06, CW, 0.4,
-     "広告レポートの「クリック数」は、そのままサイト訪問数にはなりません。誤タップや、読み込み前の離脱があるためです。",
-     11.5, MUTED)
-stat(s, ML, BODY_TOP + 1.6, 5.7, 2.0, "43.0%", "LINEヤフー広告（2024年10月〜2025年5月）",
-     "クリック率 0.12%　／　健全な水準", GREEN, SOFT, vsize=52)
-stat(s, ML + 6.13, BODY_TOP + 1.6, 5.7, 2.0, "15.9%", "DV360（2026年5〜6月）",
-     "クリック率 11.30%　／　誤タップ主体", ALERT, ALERT_PALE, vsize=52)
-callout(s, ML, BODY_TOP + 3.82, CW, 1.02,
-        "媒体によって2.7倍の差があります。ディスプレイ広告のクリック率は通常0.1〜0.5%程度です。\n"
-        "DV360の11.30%は、広告を見て興味を持ってクリックされた数値ではありません。", kind="alert")
+# ══ 17  Divider ═════════════════════════════════
+divider("PART 4", "配信品質の分析",
+        "買ったクリックは、本当にサイトに届いているか。新しい評価軸で媒体を比較します。")
 
-# ══════════════════════════════════════════════
-# 15 DV360 配信面分析
-# ══════════════════════════════════════════════
-s = slide_new("DV360の配信面を1面ずつ分析しました", "第6章　配信品質の分析",
-              "2026年5〜6月の全配信面 9,833行を取得し、GA4と突き合わせました。")
+# ══ 18  サイト到達率 ════════════════════════════
+s = slide_new("4 品質", "新しい評価軸 ── サイト到達率", tag="F")
+card(s, MX, BODY_Y, CW, 0.72, COLORS["primary"])
+txt(s, MX, BODY_Y, CW, 0.72, "サイト到達率　＝　GA4のセッション数　÷　広告のクリック数",
+    16, COLORS["ink"], True, PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+txt(s, MX, BODY_Y + 0.92, CW, 0.4,
+    "広告レポートの「クリック数」は、そのままサイト訪問数にはなりません。誤タップや、読み込み前の離脱があるためです。",
+    SZ["body"], COLORS["text"])
+kpi(s, X2[0], BODY_Y + 1.44, C2, 1.9, "43.0%",
+    "LINEヤフー広告（2024年10月〜2025年5月）",
+    "クリック率 0.12%　／　健全な水準", accent=COLORS["primary"], vsize=38)
+kpi(s, X2[1], BODY_Y + 1.44, C2, 1.9, "15.9%", "DV360（2026年5〜6月）",
+    "クリック率 11.30%　／　誤タップ主体", accent=COLORS["accent"],
+    vcolor=COLORS["accent"], vsize=38)
+note_line(s, 6.0,
+          "〈実測〉クリック数＝各媒体API／セッション数＝GA4。〈業界一般〉ディスプレイ広告のクリック率は通常0.1〜0.5%程度とされます。\n"
+          "〈両論併記〉DV360にも良質な配信面は存在します（次ページ）。")
+
+# ══ 19  DV360 配信面 ════════════════════════════
+s = slide_new("4 品質", "DV360の配信面を1面ずつ分析しました", tag="G",
+              lead="2026年5〜6月の全配信面 9,833行を取得し、GA4と突き合わせました。")
 rows = [
     ["配信面", "表示", "クリック", "クリック率", "サイト到達率", "平均滞在"],
     ["trilltrill.jp", "88,947", "7,574", "8.5%", "**18.5%", "**0.0秒"],
     ["SmartNews（iOSアプリ）", "23,728", "4,261", "**18.0%", "77.6%", "**0.9秒"],
     ["nlab.itmedia.co.jp", "25,312", "1,564", "6.2%", "12.6%", "0.8秒"],
     ["mamastar.jp", "23,619", "1,206", "5.1%", "**4.1%", "0.3秒"],
-    ["ameblo.jp", "18,075", "926", "5.1%", "6.5%", "0.3秒"],
+    ["MILE mobile（Androidアプリ）", "—", "—", "—", "—", "**28.7秒"],
     ["**全体", "**672,105", "**43,723", "**6.51%", "**15.9%", "—"],
 ]
-table(s, ML, BODY_TOP + 0.28, CW, rows, [3.1, 1.75, 1.6, 1.6, 1.9, 1.5],
-      hl_rows=[6], row_h=0.355)
-bw = (CW - 0.36) / 2
-callout(s, ML, BODY_TOP + 3.06, bw, 1.0,
-        "trilltrill.jp　クリックの17%を1面で占めるが、\n8割がサイトに到達していない", kind="alert")
-callout(s, ML + bw + 0.36, BODY_TOP + 3.06, bw, 1.0,
-        "SmartNews　到達はするが平均0.9秒で離脱。\n誤タップ後に戻られている", kind="alert")
-text(s, ML, BODY_TOP + 4.22, CW, 0.7,
-     "クリック率5%超の配信面が65面あり、これがクリックの61%・配信費の47%を占めています。\n"
-     "一方でMILE mobile（Androidアプリ）は平均滞在28.7秒と良質。面ごとの選別が有効です。",
-     11.5, INK, line=1.35)
+table(s, MX, BODY_Y + 0.24, CW, rows, [3.3, 1.7, 1.6, 1.6, 1.9, 1.5],
+      hl=[5, 6], row_h=0.4, head_h=0.42)
+panel(s, MX, BODY_Y + 3.16, CW, 1.2, "所見", "面ごとの選別が有効です",
+      "クリック率5%超の配信面が65面あり、クリックの61%・配信費の47%を占めています。"
+      "一方でMILE mobileは平均滞在28.7秒と良質で、アプリ面が一律に悪いわけではありません。",
+      accent=COLORS["primary"])
+note_line(s, 6.5,
+          "〈実測〉DV360 Bid Manager API の配信面別レポート（9,833行）をGA4と突合。\n"
+          "※アプリ内ブラウザでは滞在時間が過少計測されうるため、判断の主軸は到達率に置いています。")
 
-# ══════════════════════════════════════════════
-# 16 LINEヤフー実績
-# ══════════════════════════════════════════════
-s = slide_new("LINEヤフー広告は、最も質の高い到達を実現していました", "第6章　配信品質の分析")
+# ══ 20  LINEヤフー ══════════════════════════════
+s = slide_new("4 品質", "LINEヤフー広告は、最も質の高い到達を実現していました", tag="D")
 rows = [
     ["配信月", "表示回数", "クリック", "クリック率"],
     ["2024年10月", "1,657,045", "2,944", "0.18%"],
@@ -580,117 +612,116 @@ rows = [
     ["2025年5月", "3,738,868", "2,772", "0.07%"],
     ["**合計", "**6,793,326", "**8,260", "**0.12%"],
 ]
-table(s, ML, BODY_TOP + 0.3, 7.3, rows, [2.1, 2.0, 1.6, 1.6], hl_rows=[4], row_h=0.42)
-stat(s, ML + 7.65, BODY_TOP + 0.3, 4.18, 1.5, "43.0%", "サイト到達率",
-     "DV360（15.9%）の2.7倍", GREEN, SOFT, vsize=42)
-stat(s, ML + 7.65, BODY_TOP + 1.96, 4.18, 1.32, "680万回", "累計表示回数",
-     None, GREEN, SOFT, vsize=32)
-callout(s, ML, BODY_TOP + 2.62, 7.3, 1.44,
-        "680万回の表示に対しクリック率0.12%、サイト到達率43.0%。\n"
-        "ディスプレイ広告として教科書通りの健全な数値です。\n"
-        "貴クラブ専用アカウントが稼働可能な状態で残っており、開設手続きなしで再開できます。")
-note(s, 6.42, "※ この期間のコンバージョンは0件でしたが、当時コンバージョン計測が設定されていたかは確認できていません。再開時は計測を設定したうえで配信します。")
+table(s, MX, BODY_Y, 7.0, rows, [2.1, 2.0, 1.5, 1.5], hl=[4], row_h=0.48, head_h=0.48)
+rx, rw = MX + 7.0 + G, CW - 7.0 - G
+kpi(s, rx, BODY_Y, rw, 1.5, "43.0%", "サイト到達率", "DV360（15.9%）の2.7倍",
+    accent=COLORS["primary"], vsize=36)
+kpi(s, rx, BODY_Y + 1.7, rw, 1.32, "680万回", "累計表示回数", accent=COLORS["primary"], vsize=28)
+panel(s, MX, BODY_Y + 2.6, 7.0, 1.36, "再開について", "開設手続きなしで8月1日から配信できます",
+      "貴クラブ専用アカウントが稼働可能な状態で残っています。",
+      accent=COLORS["accent"])
+note_line(s, 6.2,
+          "〈実測〉LINEヤフー広告API。〈両論併記〉この期間のコンバージョンは0件でした。ただし当時コンバージョン計測が\n"
+          "設定されていたかは未確認のため、成果の有無は断定できません。再開時は計測を設定したうえで配信します。")
 
-# ══════════════════════════════════════════════
-# 17 検索の分析
-# ══════════════════════════════════════════════
-s = slide_new("検索広告のクリックの70%が、すでに貴クラブをご存知の方でした", "第7章　検索の分析")
+# ══ 21  検索の分析 ══════════════════════════════
+s = slide_new("4 品質", "検索クリックの70%が、すでに貴クラブをご存知の方でした", tag="G")
 rows = [
-    ["検索テーマ（2026年7月）", "クリック"],
-    ["望月 リソル ゴルフ クラブ", "35"],
-    ["リソル 望月", "11"],
-    ["望月 東急（旧名称）", "9"],
-    ["その他", "24"],
+    ["検索テーマ（2026年7月・Google広告）", "クリック", "比率"],
+    ["**望月 リソル ゴルフ クラブ", "**35", "**44%"],
+    ["**リソル 望月", "**11", "**14%"],
+    ["**望月 東急（旧名称）", "**9", "**11%"],
+    ["その他", "24", "30%"],
 ]
-table(s, ML, BODY_TOP + 0.3, 5.6, rows, [4.0, 1.6], hl_rows=[1, 2, 3], row_h=0.4)
-stat(s, ML + 5.95, BODY_TOP + 0.3, 2.8, 2.42, "70%", "クラブ名での検索",
-     "検索クリックに占める比率", ALERT, ALERT_PALE, vsize=44)
-stat(s, ML + 9.05, BODY_TOP + 0.3, 2.78, 2.42, "42", "「ゴルフ 会員権」\nへのクリック（第1期）",
-     "本命の検索には\nほとんど出せていません", MUTED, SOFT, vsize=44)
-text(s, ML, BODY_TOP + 3.0, CW, 0.32, "競合ゴルフ場名への出稿は、成果が出ていません", 14, INK, True)
-text(s, ML, BODY_TOP + 3.42, CW, 0.5,
-     "小諸高原ゴルフクラブ／富士見高原ゴルフコース／千曲高原カントリークラブ／サニーカントリークラブ／"
-     "日向山高原ゴルフコース／浅間高原カントリー倶楽部／蓼科高原カントリークラブ／佐久リゾートゴルフ倶楽部 ほか",
-     10.5, MUTED, line=1.3)
-callout(s, ML, BODY_TOP + 4.12, CW, 0.92,
-        "これらからのお問い合わせは0件でした。クラブ名での検索は、広告を出さなくても自然検索で到達できます。\n"
-        "その分を、会員権をお探しの方への配信に振り向ける余地があります。")
+table(s, MX, BODY_Y, 6.9, rows, [4.0, 1.5, 1.4], hl=[1, 2, 3], row_h=0.46, head_h=0.46)
+rx = MX + 6.9 + G
+hw = (CW - 6.9 - G * 2) / 2
+kpi(s, rx, BODY_Y, hw, 2.36, "70%", "クラブ名での検索", "検索クリックに占める比率",
+    accent=COLORS["accent"], vcolor=COLORS["accent"], vsize=38)
+kpi(s, rx + hw + G, BODY_Y, hw, 2.36, "42", "「ゴルフ 会員権」へのクリック（第1期）",
+    "本命の検索にはほとんど出せていません", accent=COLORS["gray"],
+    vcolor=COLORS["gray"], vsize=38)
+panel(s, MX, BODY_Y + 2.56, CW, 1.4, "所見", "新規開拓に振り向ける余地があります",
+      "第1期の検索広告では近隣ゴルフ場の名称にも出稿していましたが、そこからのお問い合わせは0件でした。\n"
+      "クラブ名での検索は、広告を出さなくても自然検索で到達できます。",
+      accent=COLORS["primary"])
+note_line(s, 6.16,
+          "〈実測〉Google Ads API の検索テーマレポート。第1期は検索語句ベースで費用の55.8%がクラブ名検索でした。")
 
-# ══════════════════════════════════════════════
-# 18 サイト内行動
-# ══════════════════════════════════════════════
-s = slide_new("サイト内行動の分析", "第8章")
-text(s, ML, BODY_TOP + 0.1, CW, 0.3, "① じっくり読まれているのはパソコン。しかし流入の96%はスマートフォンです", 13.5, INK, True)
+# ══ 22  サイト内行動 ════════════════════════════
+s = slide_new("4 品質", "サイト内行動の分析", tag="C")
+txt(s, MX, BODY_Y, CW, 0.3,
+    "① じっくり読まれているのはパソコン。しかし流入の96%はスマートフォンです",
+    14, COLORS["primary"], True)
 rows = [
     ["デバイス", "セッション", "構成比", "エンゲージ率", "平均滞在"],
     ["スマートフォン", "30,377", "**95.9%", "22.4%", "**2.5秒"],
     ["**パソコン", "**964", "**3.0%", "**47.5%", "**28.5秒"],
     ["タブレット", "326", "1.0%", "18.7%", "5.5秒"],
 ]
-table(s, ML, BODY_TOP + 0.5, 7.4, rows, [2.0, 1.5, 1.2, 1.5, 1.3], hl_rows=[2], fs=10.5, row_h=0.33, head_h=0.33)
-callout(s, ML + 7.75, BODY_TOP + 0.5, 4.08, 1.32,
-        "パソコンは流入の3%ですが、\n平均滞在はスマートフォンの11.4倍。\n"
-        "「スマートフォンの流入品質が低い」\nということです。")
-text(s, ML, BODY_TOP + 2.00, CW, 0.3, "② 会員募集の導線が二重になっています", 13.5, INK, True)
+table(s, MX, BODY_Y + 0.36, 7.2, rows, [2.0, 1.5, 1.2, 1.5, 1.3],
+      hl=[2], row_h=0.32, head_h=0.32, fs=10.5)
+panel(s, MX + 7.2 + G, BODY_Y + 0.36, CW - 7.2 - G, 1.28, "所見",
+      "スマートフォンの流入品質が低い",
+      "パソコンは流入の3%ですが、平均滞在はスマートフォンの11.4倍です。",
+      accent=COLORS["accent"])
+txt(s, MX, BODY_Y + 1.82, CW, 0.3, "② 会員募集の導線が二重になっています",
+    14, COLORS["primary"], True)
 rows2 = [
     ["期間", "LPから公式サイトへの遷移", "お問い合わせ"],
     ["第1期（8ヶ月）", "767件", "19件"],
     ["第2期（3ヶ月）", "84件", "2件"],
     ["**全期間累計", "**1,430件", "—"],
 ]
-table(s, ML, BODY_TOP + 2.40, 5.7, rows2, [2.2, 2.4, 1.5], hl_rows=[3], fs=10.5, row_h=0.33, head_h=0.33)
-text(s, ML + 6.05, BODY_TOP + 2.40, 5.78, 1.4,
-     "LPと公式サイトで同じ会員募集を掲載しており、リンクは一方通行です。\n"
-     "2026年7月の遷移の75%が広告経由でした。\n"
-     "ただし公式サイトにもお問い合わせフォームがあり、そちらで成果が発生している可能性があります。",
-     10.5, MUTED, line=1.35)
-text(s, ML, BODY_TOP + 3.90, CW, 0.3, "③ 検討中の方への再接触が不足しています", 13.5, INK, True)
+table(s, MX, BODY_Y + 2.18, 5.6, rows2, [2.2, 2.4, 1.5], hl=[3],
+      row_h=0.32, head_h=0.32, fs=10.5)
+txt(s, MX + 5.6 + G, BODY_Y + 2.18, CW - 5.6 - G, 1.28,
+    bullets(["LPと公式サイトで同じ会員募集を掲載しており、リンクは一方通行です",
+             "ただし公式サイトにもお問い合わせフォームがあり、そちらで成果が発生している可能性があります",
+             "「損失」とは決めつけられません"]),
+    SZ["body_s"], COLORS["text"], line=1.5)
+txt(s, MX, BODY_Y + 3.64, CW, 0.3, "③ 検討中の方への再接触が不足しています",
+    14, COLORS["primary"], True)
 rows3 = [
     ["Meta広告（直近30日）", "予算構成比", "クリック率", "LP到達率", "接触回数"],
     ["興味関心（新規開拓）", "**91.0%", "1.84%", "82.3%", "1.87回"],
     ["**リターゲティング（検討層）", "**9.0%", "**2.89%", "**85.7%", "2.12回"],
 ]
-table(s, ML, BODY_TOP + 4.30, CW, rows3, [3.6, 2.1, 2.0, 2.0, 2.1], hl_rows=[2], fs=10.5, row_h=0.33, head_h=0.33)
+table(s, MX, BODY_Y + 4.0, CW, rows3, [3.5, 2.1, 2.0, 2.0, 2.1],
+      hl=[2], row_h=0.32, head_h=0.32, fs=10.5)
 
-# ══════════════════════════════════════════════
-# 19 分析のまとめ → 3つの課題と打ち手
-# ══════════════════════════════════════════════
-s = slide_new("分析のまとめ ── 3つの課題と打ち手", "第9章・第10章",
-              "いずれも「広告を増やす／減らす」ではなく、「向き先を変える」ことで対応できます。")
+# ══ 23  Divider ═════════════════════════════════
+divider("PART 5", "2026年8月 配信提案",
+        "分析から導かれた3つの課題と、視察プレー最終月に向けた打ち手をご提案します。")
+
+# ══ 24  課題と打ち手 ════════════════════════════
+s = slide_new("5 提案", "3つの課題と打ち手", tag="E",
+              lead="いずれも「広告を増やす／減らす」ではなく、「向き先を変える」ことで対応できます。")
 items = [
-    ("課題 01", "配信エリアが広すぎる",
-     "成果の53%が概ね70km圏／長野の集客は16.7%／\nエリア設定と成果が月次で対応",
-     "配信エリアを半径50〜80km圏へ戻す",
-     "東京は停止せず別枠に分離し、\nエリア別に成果を測れる状態に"),
-    ("課題 02", "検討中の方への再接触が足りていない",
-     "リターゲティングのクリック率は1.57倍なのに\n予算9%・接触2.12回／高額・長期検討の商材",
-     "リターゲティングを強化する",
-     "比率を9%→20〜25%、接触回数4〜5回へ／\nカスタムオーディエンスを拡張"),
-    ("課題 03", "配信面と媒体構成に偏りがある",
-     "DV360の到達率15.9%・65面が配信費の47%／\nGoogle広告が半減し7月はMeta83%",
-     "配信面を整理し、媒体構成を戻す",
-     "DV360は65面を除外して再開／Google広告を\n第1期水準へ／LINEヤフーを再開"),
+    ("課題 01", "配信エリアが広すぎる", "成果の53%が概ね70km圏／長野の集客は16.7%",
+     "配信エリアを半径50〜80km圏へ戻す", "東京は停止せず別枠に分離し、エリア別に成果を測る"),
+    ("課題 02", "検討層への再接触が足りていない", "クリック率は1.57倍なのに予算9%・接触2.12回",
+     "リターゲティングを強化する", "比率を9%→20〜25%、接触回数4〜5回／オーディエンス拡張"),
+    ("課題 03", "配信面と媒体構成に偏りがある", "DV360の到達率15.9%／7月はMeta83%の一極集中",
+     "配信面を整理し、媒体構成を戻す", "65面を除外して再開／Google広告を第1期水準へ／LINEヤフー再開"),
 ]
-y = BODY_TOP + 0.42
+y = BODY_Y + 0.34
+lw = 5.35
 for no, ttl, ev, act, det in items:
-    rect(s, ML, y, 5.55, 1.44, ALERT_PALE)
-    rect(s, ML, y, 0.05, 1.44, ALERT)
-    text(s, ML + 0.22, y + 0.13, 1.1, 0.22, no, 10, ALERT, True, font=FONT_EN)
-    text(s, ML + 0.22, y + 0.4, 5.1, 0.28, ttl, 13, INK, True)
-    text(s, ML + 0.22, y + 0.76, 5.1, 0.58, ev, 9.5, MUTED, line=1.3)
-    ax = ML + 5.55
-    text(s, ax + 0.09, y + 0.58, 0.42, 0.3, "▶", 14, GOLD, True, PP_ALIGN.CENTER)
-    rect(s, ax + 0.6, y, CW - 5.55 - 0.6, 1.44, GREEN_PALE)
-    rect(s, ax + 0.6, y, 0.05, 1.44, GREEN)
-    text(s, ax + 0.82, y + 0.28, 5.0, 0.3, act, 13, GREEN, True)
-    text(s, ax + 0.82, y + 0.68, 5.0, 0.6, det, 9.5, MUTED, line=1.3)
-    y += 1.62
+    card(s, MX, y, lw, 1.34, COLORS["accent"])
+    txt(s, MX + 0.22, y + 0.22, 1.3, 0.24, no, SZ["label"], COLORS["accent"], True)
+    txt(s, MX + 0.22, y + 0.5, lw - 0.44, 0.3, ttl, 14.5, COLORS["ink"], True)
+    txt(s, MX + 0.22, y + 0.86, lw - 0.44, 0.34, ev, SZ["fine"], COLORS["muted"])
+    txt(s, MX + lw + 0.06, y + 0.46, 0.42, 0.34, "▶", 14, COLORS["gray"], True, PP_ALIGN.CENTER)
+    ax = MX + lw + 0.55
+    rect(s, ax, y, CW - lw - 0.55, 1.34, COLORS["primary"])
+    txt(s, ax + 0.24, y + 0.28, CW - lw - 1.03, 0.3, act, 14.5, COLORS["bg"], True)
+    txt(s, ax + 0.24, y + 0.7, CW - lw - 1.03, 0.5, det, SZ["fine"], COLORS["hairline"], line=1.4)
+    y += 1.52
 
-# ══════════════════════════════════════════════
-# 20 8月配信プラン
-# ══════════════════════════════════════════════
-s = slide_new("2026年8月 配信プラン", "第10章　配信提案",
-              "視察プレー期間（7月11日〜8月30日）の最終月。期間限定オファーの刈り取り月として設計します。")
+# ══ 25  配信プラン ══════════════════════════════
+s = slide_new("5 提案", "2026年8月 配信プラン", tag="G",
+              lead="視察プレー期間（7月11日〜8月30日）の最終月。期間限定オファーの刈り取り月として設計します。")
 rows = [
     ["媒体", "役割・設定", "配信費", "構成比"],
     ["Meta広告", "半径50〜80km（55%）／東京別枠（20%）／リターゲティング（25%）", "¥200,000", "47.6%"],
@@ -701,61 +732,68 @@ rows = [
     ["運用代行費", "", "¥105,000", ""],
     ["**合計", "", "**¥525,000", "**対7月 +75%"],
 ]
-table(s, ML, BODY_TOP + 0.3, CW, rows, [2.6, 5.9, 1.8, 1.55],
+table(s, MX, BODY_Y + 0.24, CW, rows, [2.6, 5.9, 1.8, 1.6],
       aligns=[PP_ALIGN.LEFT, PP_ALIGN.LEFT, PP_ALIGN.RIGHT, PP_ALIGN.RIGHT],
-      hl_rows=[7], row_h=0.365)
-text(s, ML, BODY_TOP + 3.42, 5.7, 0.3, "媒体の偏りを是正します", 13, INK, True)
+      hl=[7], row_h=0.4, head_h=0.42)
 rows2 = [
     ["", "Meta", "Google", "DV360", "LINEヤフー"],
     ["2026年7月（実績）", "**83.3%", "16.7%", "0%", "—"],
     ["**2026年8月（提案）", "**47.6%", "19.0%", "19.0%", "14.3%"],
 ]
-table(s, ML, BODY_TOP + 3.82, 5.7, rows2, [1.9, 1.0, 1.0, 0.95, 1.15],
-      hl_rows=[2], fs=9.5, hfs=9, row_h=0.34, head_h=0.32)
-text(s, ML + 6.05, BODY_TOP + 3.42, 5.78, 0.3, "KPI", 13, INK, True)
-rows3 = [
-    ["指標", "目標", "根拠"],
-    ["**お問い合わせ", "**3〜5件", "第1期の月平均2.4件／最良月5件"],
-    ["**獲得単価", "**¥105,000〜175,000", "5件なら第1期平均と同水準"],
-    ["地元の集客構成比", "19% → 40%以上", "成果構成比53%に近づける"],
-    ["DV360のサイト到達率", "15.9% → 40%以上", "配信面の除外による改善"],
-]
-table(s, ML + 6.05, BODY_TOP + 3.82, 5.78, rows3, [1.85, 1.65, 2.3],
-      aligns=[PP_ALIGN.LEFT, PP_ALIGN.RIGHT, PP_ALIGN.LEFT],
-      hl_rows=[1, 2], fs=9, hfs=9, row_h=0.31, head_h=0.3)
+table(s, MX, BODY_Y + 3.62, 6.5, rows2, [2.1, 1.1, 1.15, 1.05, 1.3],
+      hl=[2], row_h=0.38, head_h=0.36, fs=10.5)
+panel(s, MX + 6.5 + G, BODY_Y + 3.62, CW - 6.5 - G, 1.12, "補足",
+      "Meta広告は減額しません",
+      "内訳を組み替えて一極集中（83.3%）を47.6%まで下げます。",
+      accent=COLORS["primary"])
+note_line(s, 6.66, "〈実測〉7月実績＝ご請求データ。〈提案〉8月の構成比は本プランに基づく計画値です。")
 
-# ══════════════════════════════════════════════
-# 21 スケジュール・ご依頼事項
-# ══════════════════════════════════════════════
-s = slide_new("スケジュールとご依頼事項", "第12章・第13章")
-text(s, ML, BODY_TOP + 0.14, 6.4, 0.3, "スケジュール", 14, INK, True)
+# ══ 26  KPI ═════════════════════════════════════
+s = slide_new("5 提案", "8月のKPI", tag="F")
+k = [("3〜5件", "お問い合わせ", "第1期の月平均2.4件／最良月5件", COLORS["primary"]),
+     ("¥105,000〜175,000", "獲得単価", "5件なら第1期平均と同水準", COLORS["primary"]),
+     ("40%以上", "地元の集客構成比", "現在19%。成果構成比53%に近づける", COLORS["accent"]),
+     ("40%以上", "DV360のサイト到達率", "現在15.9%。配信面の除外による改善", COLORS["accent"])]
+for i, (v, l, n, ac) in enumerate(k):
+    kpi(s, MX + i * (w4 + G), BODY_Y + 0.24, w4, 2.1, v, l, n,
+        accent=ac, vcolor=ac, vsize=22 if len(v) > 8 else 30)
+panel(s, MX, BODY_Y + 2.6, CW, 1.16, "運用体制", "週次でご報告し、8月中旬に配分を見直します",
+      "8月30日の視察プレー受付終了に向け、月内で調整します。", accent=COLORS["primary"])
+note_line(s, 6.1,
+          "〈当社仮説〉KPIは第1期の実績水準を根拠とした目標値であり、達成を保証するものではありません。\n"
+          "〈両論併記〉7月1日の3変更が同時発生していたため、施策単独の効果は8月の実測で検証します。")
+
+# ══ 27  スケジュール・依頼事項 ═══════════════════
+s = slide_new("5 提案", "スケジュールとご依頼事項", tag="C")
+txt(s, MX, BODY_Y, 6.3, 0.3, "スケジュール", 14, COLORS["primary"], True)
 rows = [
     ["期日", "内容"],
-    ["7月下旬", "配信エリアの設定変更／DV360除外リスト作成／クラブ名検索の除外／コンバージョン計測の接続／LPの入力導線最適化"],
+    ["7月下旬", "配信エリアの設定変更／DV360除外リスト作成／クラブ名検索の除外／コンバージョン計測の接続"],
     ["7月末", "クリエイティブを視察プレー訴求へ差し替え／LINEヤフー広告の入稿"],
     ["**8月1日", "**配信開始"],
     ["8月中旬", "中間レポート・配分の見直し"],
     ["**8月30日", "**視察プレー受付終了"],
     ["9月上旬", "8月実績のご報告・9月以降のご提案"],
 ]
-table(s, ML, BODY_TOP + 0.54, 6.4, rows, [1.5, 4.9],
-      aligns=[PP_ALIGN.LEFT, PP_ALIGN.LEFT], hl_rows=[3, 5], fs=10, row_h=0.44, head_h=0.34)
-text(s, ML + 6.75, BODY_TOP + 0.14, 5.08, 0.3, "ご依頼事項", 14, INK, True)
-rect(s, ML + 6.75, BODY_TOP + 0.54, 5.08, 3.42, GREEN_PALE)
-rect(s, ML + 6.75, BODY_TOP + 0.54, 0.055, 3.42, GREEN)
-text(s, ML + 7.0, BODY_TOP + 0.76, 4.66, 3.0,
-     "公式サイト経由のお問い合わせ実績を、\n月別・「知ったきっかけ」別でご共有ください。\n\n"
-     "公式サイトのお問い合わせフォームには\n「知ったきっかけ」が必須項目としてあり、\n"
-     "「Googleの広告」「Facebook/Instagram等の広告」\nが選択肢に含まれています。\n\n"
-     "LPから公式サイトへ1,430件の遷移が発生して\nおり、広告経由のお問い合わせが公式サイト側で\n"
-     "受け付けられている可能性があります。\n\n"
-     "現時点の集計はLP経由のみです。実際の成果を\n過小評価している可能性があります。",
-     10.5, INK, line=1.4)
-rect(s, ML, 6.14, CW, 0.68, SOFT)
-text(s, ML + 0.28, 6.24, CW - 0.56, 0.5,
-     "本レポートのデータ出典：お問い合わせ通知メールの実データ／Google Analytics 4／Google Ads API／Meta Marketing API／"
-     "DV360 Bid Manager API／LINEヤフー広告API／弊社基幹システム",
-     9.5, MUTED, line=1.3, anchor=MSO_ANCHOR.MIDDLE)
+table(s, MX, BODY_Y + 0.36, 6.3, rows, [1.4, 4.9],
+      aligns=[PP_ALIGN.LEFT, PP_ALIGN.LEFT], hl=[3, 5], row_h=0.48, head_h=0.46, fs=10.5)
+rx, rw = MX + 6.3 + G, CW - 6.3 - G
+txt(s, rx, BODY_Y, rw, 0.3, "ご依頼事項", 14, COLORS["primary"], True)
+rect(s, rx, BODY_Y + 0.36, rw, 3.62, COLORS["primary"])
+txt(s, rx + 0.28, BODY_Y + 0.6, rw - 0.56, 3.2,
+    "公式サイト経由のお問い合わせ実績を、\n月別・「知ったきっかけ」別でご共有ください。\n\n"
+    + bullets([
+        "公式サイトのフォームには「知ったきっかけ」が必須項目としてあり、「Googleの広告」「Facebook/Instagram等の広告」が選択肢に含まれています",
+        "LPから公式サイトへ1,430件の遷移が発生しており、広告経由のお問い合わせが公式サイト側で受け付けられている可能性があります",
+        "現時点の集計はLP経由のみです。実際の成果を過小評価している可能性があります",
+    ]),
+    SZ["body_s"], COLORS["bg"], line=1.55)
+note_line(s, 6.28,
+          "本レポートの出典：お問い合わせ通知メールの実データ／Google Analytics 4／Google Ads API／Meta Marketing API／"
+          "DV360 Bid Manager API／LINEヤフー広告API／弊社基幹システム")
 
+os.makedirs(OUT_DIR, exist_ok=True)
 prs.save(OUT)
-print(f"保存: {OUT} / 全{len(prs.slides.__iter__.__self__._sldIdLst)}枚")
+print(f"保存: {OUT}")
+print(f"全{_st['page']}枚")
+print("レイアウト順: " + " ".join(_st["layouts"]))
